@@ -72,6 +72,13 @@ const PerfilModule = (() => {
                 addGoal();
             }
         });
+
+        // Respaldos
+        document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
+        document.getElementById('btnImportBackup').addEventListener('click', () => {
+            document.getElementById('fileImportBackup').click();
+        });
+        document.getElementById('fileImportBackup').addEventListener('change', importBackup);
     }
 
     /**
@@ -228,6 +235,7 @@ const PerfilModule = (() => {
         displayCapital();
         displayGoals();
         displayQuote();
+        updateBackupStatus();
     }
 
     /**
@@ -325,6 +333,84 @@ const PerfilModule = (() => {
      */
     function getProfile() {
         return { ...profileData };
+    }
+
+    /**
+     * Exporta un respaldo completo de todos los datos
+     */
+    function exportBackup() {
+        try {
+            Storage.exportData();
+            
+            // Guardar fecha del último backup
+            localStorage.setItem('mindset_last_backup', new Date().toISOString());
+            updateBackupStatus();
+            
+            showNotification('✅ Respaldo descargado exitosamente', 'success');
+        } catch (error) {
+            console.error('Error al exportar:', error);
+            showNotification('❌ Error al crear el respaldo', 'error');
+        }
+    }
+
+    /**
+     * Importa un respaldo desde archivo
+     */
+    async function importBackup(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Confirmar acción
+        if (!confirm('⚠️ Esto reemplazará todos los datos actuales. ¿Continuar?')) {
+            e.target.value = ''; // Limpiar input
+            return;
+        }
+
+        try {
+            const data = await Storage.importData(file);
+            
+            showNotification('✅ Respaldo restaurado correctamente', 'success');
+            
+            // Recargar después de 1.5 segundos para refrescar la UI
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } catch (error) {
+            console.error('Error al importar:', error);
+            showNotification('❌ Error al restaurar el respaldo. Verifica que el archivo sea válido.', 'error');
+        }
+        
+        e.target.value = ''; // Limpiar input
+    }
+
+    /**
+     * Actualiza el estado del respaldo en la UI
+     */
+    function updateBackupStatus() {
+        const clientes = Storage.getClientes();
+        const prestamos = Storage.getPrestamos();
+        const pagos = Storage.getPagos();
+        const lastBackup = localStorage.getItem('mindset_last_backup');
+
+        document.getElementById('statusClientes').textContent = clientes.length;
+        document.getElementById('statusPrestamos').textContent = prestamos.filter(p => p.estado === 'activo').length;
+        document.getElementById('statusPagos').textContent = pagos.length;
+
+        if (lastBackup) {
+            const fecha = new Date(lastBackup);
+            const ahora = new Date();
+            const diffDias = Math.floor((ahora - fecha) / (1000 * 60 * 60 * 24));
+            
+            if (diffDias === 0) {
+                document.getElementById('statusUltimoBackup').textContent = 'Hoy';
+            } else if (diffDias === 1) {
+                document.getElementById('statusUltimoBackup').textContent = 'Hace 1 día';
+            } else {
+                document.getElementById('statusUltimoBackup').textContent = `Hace ${diffDias} días`;
+            }
+        } else {
+            document.getElementById('statusUltimoBackup').textContent = 'Nunca';
+        }
     }
 
     // API Pública

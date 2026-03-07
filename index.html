@@ -420,6 +420,47 @@
                     </div>
                     <button class="btn-primary" id="btnSaveQuote">💫 Guardar Frase</button>
                 </div>
+
+                <!-- Respaldo de Datos -->
+                <div class="card profile-card backup-card">
+                    <h3>💾 Respaldo y Seguridad</h3>
+                    <p class="backup-description">
+                        Tus datos se guardan automáticamente en tu dispositivo. ¡Importante! Crea respaldos periódicos para no perder tu información.
+                    </p>
+                    
+                    <div class="backup-status" id="backupStatus">
+                        <div class="status-item">
+                            <span class="status-label">📊 Clientes guardados:</span>
+                            <span class="status-value" id="statusClientes">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">💰 Préstamos activos:</span>
+                            <span class="status-value" id="statusPrestamos">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">📝 Pagos registrados:</span>
+                            <span class="status-value" id="statusPagos">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">⏰ Último respaldo:</span>
+                            <span class="status-value" id="statusUltimoBackup">Nunca</span>
+                        </div>
+                    </div>
+
+                    <div class="backup-actions">
+                        <button class="btn-success btn-full" id="btnExportBackup">
+                            📥 Descargar Respaldo Completo
+                        </button>
+                        <button class="btn-primary btn-full" id="btnImportBackup">
+                            📤 Restaurar desde Respaldo
+                        </button>
+                        <input type="file" id="fileImportBackup" accept=".json" style="display: none;">
+                    </div>
+
+                    <div class="backup-warning">
+                        ⚠️ <strong>Tip:</strong> Guarda tus respaldos en Google Drive, Dropbox o envíatelos por email. Si desistalas la app o borras los datos del navegador, perderás toda la información.
+                    </div>
+                </div>
             </div>
         </section>
 

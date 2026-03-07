@@ -257,7 +257,9 @@ const Storage = {
             prestamos: this.getPrestamos(),
             pagos: this.getPagos(),
             config: this.getConfig(),
-            exportDate: new Date().toISOString()
+            profile: JSON.parse(localStorage.getItem('mindset_profile') || '{}'),
+            exportDate: new Date().toISOString(),
+            version: '1.0'
         };
         
         const dataStr = JSON.stringify(data, null, 2);
@@ -271,6 +273,8 @@ const Storage = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        
+        return true;
     },
 
     importData(file) {
@@ -284,8 +288,9 @@ const Storage = {
                     if (data.prestamos) this.set(this.KEYS.PRESTAMOS, data.prestamos);
                     if (data.pagos) this.set(this.KEYS.PAGOS, data.pagos);
                     if (data.config) this.set(this.KEYS.CONFIG, data.config);
+                    if (data.profile) localStorage.setItem('mindset_profile', JSON.stringify(data.profile));
                     
-                    resolve(true);
+                    resolve(data);
                 } catch (error) {
                     reject(error);
                 }
