@@ -12,12 +12,12 @@
     <title>MindSet Capital - Dashboard</title>
     
     <!-- PWA -->
-    <link rel="manifest" href="/MindSetCapital/pwa/manifest.json">
-    <link rel="icon" type="image/png" href="/MindSetCapital/assets/icon-192.png">
-    <link rel="apple-touch-icon" href="/MindSetCapital/assets/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
     
     <!-- CSS -->
-    <link rel="stylesheet" href="/MindSetCapital/styles.css">
+    <link rel="stylesheet" href="styles.css">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
@@ -471,23 +471,21 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/MindSetCapital/js/storage.js"></script>
-    <script src="/MindSetCapital/js/clientes.js"></script>
-    <script src="/MindSetCapital/js/prestamos.js"></script>
-    <script src="/MindSetCapital/js/pagos.js"></script>
-    <script src="/MindSetCapital/js/dashboard.js"></script>
-    <script src="/MindSetCapital/js/analytics.js"></script>
-    <script src="/MindSetCapital/js/simulador.js"></script>
-    <script src="/MindSetCapital/js/chatbot.js"></script>
-    <script src="/MindSetCapital/app.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/clientes.js"></script>
+    <script src="js/prestamos.js"></script>
+    <script src="js/pagos.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/simulador.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="app.js"></script>
     
     <!-- PWA Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/MindSetCapital/pwa/service-worker.js', {
-                    scope: '/MindSetCapital/'
-                })
+                navigator.serviceWorker.register('sw.js')
                     .then(reg => {
                         console.log('✅ Service Worker registrado', reg);
                         console.log('Scope:', reg.scope);
