@@ -2,37 +2,29 @@
 // SERVICE WORKER - PWA
 // ============================================
 
-const CACHE_NAME = 'mindset-capital-v2';
-
-// Obtener el base path (importante para GitHub Pages)
-const getBasePath = () => {
-    const path = self.location.pathname;
-    const swPath = path.substring(0, path.lastIndexOf('/'));
-    return swPath.replace('/pwa', '');
-};
-
-const basePath = getBasePath();
+const CACHE_NAME = 'mindset-capital-v3';
+const BASE_PATH = '/MindSetCapital';
 
 const urlsToCache = [
-    `${basePath}/`,
-    `${basePath}/index.html`,
-    `${basePath}/styles.css`,
-    `${basePath}/app.js`,
-    `${basePath}/js/storage.js`,
-    `${basePath}/js/clientes.js`,
-    `${basePath}/js/prestamos.js`,
-    `${basePath}/js/pagos.js`,
-    `${basePath}/js/dashboard.js`,
-    `${basePath}/js/analytics.js`,
-    `${basePath}/js/simulador.js`,
-    `${basePath}/js/chatbot.js`,
+    `${BASE_PATH}/`,
+    `${BASE_PATH}/index.html`,
+    `${BASE_PATH}/styles.css`,
+    `${BASE_PATH}/app.js`,
+    `${BASE_PATH}/js/storage.js`,
+    `${BASE_PATH}/js/clientes.js`,
+    `${BASE_PATH}/js/prestamos.js`,
+    `${BASE_PATH}/js/pagos.js`,
+    `${BASE_PATH}/js/dashboard.js`,
+    `${BASE_PATH}/js/analytics.js`,
+    `${BASE_PATH}/js/simulador.js`,
+    `${BASE_PATH}/js/chatbot.js`,
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js'
 ];
 
 // Instalación del Service Worker
 self.addEventListener('install', event => {
     console.log('[SW] Instalando Service Worker...');
-    console.log('[SW] Base Path:', basePath);
+    console.log('[SW] Base Path:', BASE_PATH);
     console.log('[SW] URLs a cachear:', urlsToCache);
     
     event.waitUntil(
