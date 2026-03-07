@@ -83,6 +83,7 @@ function initializeApp() {
         AnalyticsModule.init();
         SimuladorModule.init();
         ChatbotModule.init();
+        PerfilModule.init();
         
         console.log('✅ Aplicación iniciada correctamente');
     } catch (error) {

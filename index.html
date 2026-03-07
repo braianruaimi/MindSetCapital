@@ -60,6 +60,7 @@
             <button class="nav-btn" data-section="analytics">Análisis</button>
             <button class="nav-btn" data-section="simulador">Simulador</button>
             <button class="nav-btn" data-section="chatbot">Asistente</button>
+            <button class="nav-btn" data-section="perfil">👤 Perfil</button>
         </div>
         <button class="menu-toggle" id="menuToggle">☰</button>
     </nav>
@@ -353,6 +354,75 @@
             </div>
         </section>
 
+        <!-- SECCIÓN: PERFIL -->
+        <section id="perfil" class="section">
+            <div class="section-header">
+                <h2>👤 Mi Perfil</h2>
+            </div>
+
+            <div class="profile-container">
+                <!-- Foto y Datos Personales -->
+                <div class="card profile-card">
+                    <h3>Información Personal</h3>
+                    <div class="profile-photo-container">
+                        <div class="profile-photo" id="profilePhoto">
+                            <span class="photo-placeholder">📷</span>
+                        </div>
+                        <input type="file" id="photoUpload" accept="image/*" style="display: none;">
+                        <button class="btn-secondary" id="btnChangePhoto">Cambiar Foto</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="profileNombre" placeholder="Tu nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido *</label>
+                        <input type="text" id="profileApellido" placeholder="Tu apellido">
+                    </div>
+                    <button class="btn-primary" id="btnSavePersonal">💾 Guardar Datos</button>
+                </div>
+
+                <!-- Capital Inicial -->
+                <div class="card profile-card">
+                    <h3>💰 Capital del Negocio</h3>
+                    <div class="capital-display">
+                        <div class="capital-amount" id="capitalAmount">$0</div>
+                        <p class="capital-description">Este es tu capital base para realizar préstamos</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Editar Capital Inicial</label>
+                        <input type="number" id="editCapital" placeholder="Ingresa nuevo capital" step="0.01">
+                    </div>
+                    <button class="btn-primary" id="btnSaveCapital">💵 Actualizar Capital</button>
+                </div>
+
+                <!-- Metas y Objetivos -->
+                <div class="card profile-card">
+                    <h3>🎯 Mis Metas</h3>
+                    <div class="goals-container" id="goalsContainer">
+                        <!-- Las metas se cargarán dinámicamente -->
+                    </div>
+                    <div class="add-goal-form">
+                        <input type="text" id="newGoalInput" placeholder="Nueva meta u objetivo...">
+                        <button class="btn-primary" id="btnAddGoal">➕ Agregar Meta</button>
+                    </div>
+                </div>
+
+                <!-- Frase Motivacional -->
+                <div class="card profile-card motivational-card">
+                    <h3>✨ Motivación</h3>
+                    <div class="motivational-quote" id="motivationalQuote">
+                        <p class="quote-text">"Tu frase motivacional aparecerá aquí"</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Tu Frase que te Impulsa</label>
+                        <textarea id="quoteInput" rows="3" placeholder="Escribe una frase que te motive a seguir creciendo..."></textarea>
+                    </div>
+                    <button class="btn-primary" id="btnSaveQuote">💫 Guardar Frase</button>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Modal: Nuevo Cliente -->
@@ -512,6 +582,7 @@
     <script src="js/analytics.js"></script>
     <script src="js/simulador.js"></script>
     <script src="js/chatbot.js"></script>
+    <script src="js/perfil.js"></script>
     <script src="app.js"></script>
     
     <!-- PWA Service Worker -->
