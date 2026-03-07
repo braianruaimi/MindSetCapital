@@ -7,12 +7,67 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Iniciando MindSet Capital...');
     
+    // Verificar autenticación
+    checkAuth();
+    
+    // Setup login
+    setupLogin();
+});
+
+// ============================================
+// SISTEMA DE AUTENTICACIÓN
+// ============================================
+
+function checkAuth() {
+    const isAuthenticated = localStorage.getItem('mindset_authenticated');
+    
+    if (isAuthenticated === 'true') {
+        showMainApp();
+    } else {
+        showLoginScreen();
+    }
+}
+
+function showLoginScreen() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+function showMainApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    
     // Inicializar módulos
     initializeApp();
     setupNavigation();
     setupMobileMenu();
     checkFirstRun();
-});
+}
+
+function setupLogin() {
+    const loginForm = document.getElementById('loginForm');
+    const passwordInput = document.getElementById('loginPassword');
+    
+    loginForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const password = passwordInput.value;
+        
+        if (password === '2026') {
+            localStorage.setItem('mindset_authenticated', 'true');
+            showMainApp();
+            passwordInput.value = '';
+        } else {
+            alert('❌ Contraseña incorrecta. Intenta de nuevo.');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    });
+}
+
+// ============================================
+// INICIALIZACIÓN DE MÓDULOS
+// ============================================
 
 // Inicializar todos los módulos
 function initializeApp() {

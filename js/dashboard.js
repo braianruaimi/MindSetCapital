@@ -9,6 +9,7 @@ const DashboardModule = {
     init() {
         this.calculateMetrics();
         this.showAlerts();
+        this.showAlertasCobros();
         this.showCobrosHoy();
         this.renderCharts();
         
@@ -16,6 +17,90 @@ const DashboardModule = {
             this.init();
             ClientesModule.showNotification('Dashboard actualizado', 'info');
         });
+    },
+
+    showAlertasCobros() {
+        const container = document.getElementById('alertasCobros');
+        if (!container) return;
+
+        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        const cobrosProximos = [];
+
+        prestamos.forEach(prestamo => {
+            const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
+            proximoPago.setHours(0, 0, 0, 0);
+            const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
+
+            // Mostrar cobros de hoy y próximos 3 días
+            if (dias >= 0 && dias <= 3) {
+                const cliente = Storage.getCliente(prestamo.clienteId);
+                cobrosProximos.push({
+                    cliente: cliente?.nombre || 'Desconocido',
+                    clienteId: cliente?.id,
+                    monto: prestamo.valorCuota,
+                    dias: dias,
+                    prestamoId: prestamo.id,
+                    fecha: proximoPago,
+                    telefono: cliente?.telefono || ''
+                });
+            }
+        });
+
+        if (cobrosProximos.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // Ordenar por días (más próximos primero)
+        cobrosProximos.sort((a, b) => a.dias - b.dias);
+
+        const getDiaTexto = (dias) => {
+            if (dias === 0) return '🔴 HOY';
+            if (dias === 1) return '🟡 Mañana';
+            return `🟢 En ${dias} días`;
+        };
+
+        const getColorClase = (dias) => {
+            if (dias === 0) return 'alerta-hoy';
+            if (dias === 1) return 'alerta-manana';
+            return 'alerta-proximos';
+        };
+
+        container.innerHTML = `
+            <div class="alertas-cobros-card">
+                <div class="alertas-header">
+                    <h3>⚡ Alertas de Cobros Próximos</h3>
+                    <span class="alertas-count">${cobrosProximos.length} pendiente(s)</span>
+                </div>
+                <div class="alertas-list">
+                    ${cobrosProximos.map(cobro => `
+                        <div class="alerta-cobro-item ${getColorClase(cobro.dias)}">
+                            <div class="alerta-info">
+                                <div class="alerta-cliente">
+                                    <span class="cliente-nombre">${cobro.cliente}</span>
+                                    ${cobro.telefono ? `<span class="cliente-tel">📞 ${cobro.telefono}</span>` : ''}
+                                </div>
+                                <div class="alerta-detalles">
+                                    <span class="alerta-monto">$${parseFloat(cobro.monto).toLocaleString()}</span>
+                                    <span class="alerta-fecha">${cobro.fecha.toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="alerta-estado">
+                                <span class="estado-badge">${getDiaTexto(cobro.dias)}</span>
+                                <button class="btn-small btn-success" 
+                                        onclick="PagosModule.openModalPago('${cobro.prestamoId}')" 
+                                        title="Registrar Pago">
+                                    💰 Cobrar
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
     },
 
     calculateMetrics() {

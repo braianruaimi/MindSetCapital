@@ -4,40 +4,45 @@
    ============================================ */
 
 :root {
-    /* Colores Principales - Tema Oscuro Moderno */
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-    --success: #10b981;
-    --success-dark: #059669;
-    --warning: #f59e0b;
-    --warning-dark: #d97706;
-    --danger: #ef4444;
-    --danger-dark: #dc2626;
-    --info: #3b82f6;
-    --info-dark: #2563eb;
+    /* Colores Principales - Tema Eléctrico Profesional */
+    --primary: #00ffff;
+    --primary-dark: #00d4d4;
+    --primary-light: #6cffff;
+    --secondary: #ff00ff;
+    --secondary-dark: #d400d4;
+    --secondary-light: #ff6cff;
+    --success: #00ff88;
+    --success-dark: #00cc6d;
+    --warning: #ffaa00;
+    --warning-dark: #cc8800;
+    --danger: #ff0055;
+    --danger-dark: #cc0044;
+    --info: #0088ff;
+    --info-dark: #0066cc;
     
-    /* Colores de Fondo - Dark Theme */
-    --bg-primary: #0f0f1e;
-    --bg-secondary: #1a1a2e;
-    --bg-tertiary: #252540;
-    --bg-card: #1e1e38;
-    --bg-hover: #2a2a4a;
+    /* Colores de Fondo - Dark Theme Profesional */
+    --bg-primary: #0a0a14;
+    --bg-secondary: #12121f;
+    --bg-tertiary: #1a1a2b;
+    --bg-card: #15152a;
+    --bg-hover: #1f1f35;
     
     /* Colores de Texto */
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-    --text-inverse: #0f0f1e;
+    --text-primary: #ffffff;
+    --text-secondary: #e0e0ff;
+    --text-muted: #a0a0c0;
+    --text-inverse: #0a0a14;
     
     /* Bordes */
-    --border-color: #2d2d4f;
-    --border-light: #3a3a5c;
+    --border-color: #2a2a45;
+    --border-light: #3a3a60;
     
-    /* Sombras para Dark Mode */
-    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.6);
-    --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+    /* Sombras con Glow Eléctrico */
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.8);
+    --shadow-glow-cyan: 0 0 30px rgba(0, 255, 255, 0.4);
+    --shadow-glow-magenta: 0 0 30px rgba(255, 0, 255, 0.4);
+    --shadow-glow-green: 0 0 30px rgba(0, 255, 136, 0.4);
     
     --border-radius: 12px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -47,7 +52,8 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: rgba(99, 102, 241, 0.2);
+    -webkit-tap-highlight-color: rgba(0, 255, 255, 0.2);
+}
 }
 
 body {
@@ -70,8 +76,9 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1), transparent 50%),
-                radial-gradient(ellipse at bottom, rgba(16, 185, 129, 0.05), transparent 50%);
+    background: radial-gradient(ellipse at top, rgba(0, 255, 255, 0.15), transparent 60%),
+                radial-gradient(ellipse at bottom right, rgba(255, 0, 255, 0.1), transparent 60%),
+                radial-gradient(ellipse at bottom left, rgba(0, 255, 136, 0.08), transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -454,6 +461,181 @@ body::before {
     border-left: 4px solid var(--info);
     color: #93c5fd;
     backdrop-filter: blur(10px);
+}
+
+/* ============================================
+   ALERTAS DE COBROS PRÓXIMOS
+   ============================================ */
+
+.alertas-cobros-container {
+    margin-bottom: 2rem;
+}
+
+.alertas-cobros-card {
+    background: var(--bg-card);
+    border: 2px solid var(--primary);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-glow-cyan), var(--shadow-lg);
+    animation: slideIn 0.5s ease;
+}
+
+.alertas-header {
+    background: linear-gradient(135deg, var(--primary), var(--info));
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alertas-header h3 {
+    color: var(--text-inverse);
+    font-size: 1.25rem;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.alertas-count {
+    background: rgba(255, 255, 255, 0.3);
+    color: var(--text-inverse);
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+}
+
+.alertas-list {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.alerta-cobro-item {
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border-left: 4px solid;
+    transition: var(--transition);
+}
+
+.alerta-cobro-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.alerta-hoy {
+    border-left-color: var(--danger);
+    background: rgba(255, 0, 85, 0.08);
+}
+
+.alerta-manana {
+    border-left-color: var(--warning);
+    background: rgba(255, 170, 0, 0.08);
+}
+
+.alerta-proximos {
+    border-left-color: var(--success);
+    background: rgba(0, 255, 136, 0.08);
+}
+
+.alerta-info {
+    flex: 1;
+}
+
+.alerta-cliente {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.cliente-nombre {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.cliente-tel {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.alerta-detalles {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.alerta-monto {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--primary);
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.alerta-fecha {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.alerta-estado {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.estado-badge {
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.alerta-hoy .estado-badge {
+    background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+    color: white;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+    animation: pulse 2s infinite;
+}
+
+.alerta-manana .estado-badge {
+    background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+    color: var(--text-inverse);
+    box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+}
+
+.alerta-proximos .estado-badge {
+    background: linear-gradient(135deg, var(--success), var(--success-dark));
+    color: var(--text-inverse);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+}
+
+@media (max-width: 640px) {
+    .alerta-cobro-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .alerta-estado {
+        align-items: stretch;
+    }
+    
+    .estado-badge {
+        text-align: center;
+    }
+    
+    .alerta-estado button {
+        width: 100%;
+    }
 }
 
 /* ============================================
@@ -1277,6 +1459,140 @@ tbody tr:hover {
     
     .client-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ============================================
+   PANTALLA DE LOGIN
+   ============================================ */
+
+.login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: var(--bg-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.5s ease;
+}
+
+.login-container {
+    background: var(--bg-card);
+    border: 2px solid var(--primary);
+    border-radius: var(--border-radius);
+    padding: 3rem 2rem;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: var(--shadow-glow-cyan), var(--shadow-lg);
+    animation: slideUp 0.6s ease;
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-logo h1 {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+.login-logo h2 {
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.login-logo p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.login-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    transition: var(--transition);
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 4px;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    background: var(--bg-secondary);
+}
+
+.btn-login {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+}
+
+.login-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
     }
 }
 

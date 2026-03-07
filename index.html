@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="description" content="MindSet Capital - Sistema de gestión de préstamos personales">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#00ffff">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,6 +23,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">
+                <h1>💰</h1>
+                <h2>MindSet Capital</h2>
+                <p>Sistema Profesional de Gestión</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label>Contraseña de Acceso</label>
+                    <input type="password" id="loginPassword" placeholder="Ingresa la contraseña" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn-primary btn-login">
+                    Ingresar
+                </button>
+                <p class="login-hint">Tip: La contraseña es el año actual</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Aplicación Principal (oculta hasta login) -->
+    <div id="mainApp" style="display: none;">
+    
     <!-- Navegación -->
     <nav class="navbar">
         <div class="nav-brand">
@@ -48,6 +72,11 @@
             <div class="section-header">
                 <h2>Dashboard Financiero</h2>
                 <button class="btn-primary" id="refreshDashboard">🔄 Actualizar</button>
+            </div>
+
+            <!-- Alertas de Cobros Próximos -->
+            <div id="alertasCobros" class="alertas-cobros-container">
+                <!-- Se llena dinámicamente con JavaScript -->
             </div>
 
             <!-- Alertas -->
@@ -471,6 +500,8 @@
             </div>
         </div>
     </div>
+    
+    </div><!-- Fin mainApp -->
 
     <!-- Scripts -->
     <script src="js/storage.js"></script>
