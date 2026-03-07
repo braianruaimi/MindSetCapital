@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MindSet Capital - Sistema de gestión de préstamos personales">
+    <meta name="theme-color" content="#1a73e8">
+    <title>MindSet Capital - Dashboard</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="pwa/manifest.json">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body>
+    <!-- Navegación -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h1>💰 MindSet Capital</h1>
+        </div>
+        <div class="nav-menu">
+            <button class="nav-btn active" data-section="dashboard">Dashboard</button>
+            <button class="nav-btn" data-section="clientes">Clientes</button>
+            <button class="nav-btn" data-section="prestamos">Préstamos</button>
+            <button class="nav-btn" data-section="pagos">Pagos</button>
+            <button class="nav-btn" data-section="analytics">Análisis</button>
+            <button class="nav-btn" data-section="simulador">Simulador</button>
+            <button class="nav-btn" data-section="chatbot">Asistente</button>
+        </div>
+        <button class="menu-toggle" id="menuToggle">☰</button>
+    </nav>
+
+    <!-- Contenedor principal -->
+    <main class="container">
+        
+        <!-- SECCIÓN: DASHBOARD -->
+        <section id="dashboard" class="section active">
+            <div class="section-header">
+                <h2>Dashboard Financiero</h2>
+                <button class="btn-primary" id="refreshDashboard">🔄 Actualizar</button>
+            </div>
+
+            <!-- Alertas -->
+            <div class="alerts-container" id="alertsContainer"></div>
+
+            <!-- Métricas principales -->
+            <div class="metrics-grid">
+                <div class="metric-card primary">
+                    <div class="metric-icon">💵</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Capital Disponible</span>
+                        <span class="metric-value" id="capitalDisponible">$0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card success">
+                    <div class="metric-icon">💰</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Total Prestado</span>
+                        <span class="metric-value" id="totalPrestado">$0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card warning">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Total a Cobrar</span>
+                        <span class="metric-value" id="totalCobrar">$0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card info">
+                    <div class="metric-icon">💎</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Ganancia Total</span>
+                        <span class="metric-value" id="gananciaTotal">$0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">📈</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Ganancia del Mes</span>
+                        <span class="metric-value" id="gananciaMes">$0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">👥</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Clientes</span>
+                        <span class="metric-value" id="totalClientes">0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">📋</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Préstamos Activos</span>
+                        <span class="metric-value" id="prestamosActivos">0</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-icon">✅</div>
+                    <div class="metric-info">
+                        <span class="metric-label">Préstamos Finalizados</span>
+                        <span class="metric-value" id="prestamosFinalizados">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cobros del día -->
+            <div class="card">
+                <h3>📅 Cobros de Hoy</h3>
+                <div id="cobrosHoy" class="cobros-list"></div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="charts-grid">
+                <div class="card chart-card">
+                    <h3>Ganancias Mensuales</h3>
+                    <canvas id="chartGanancias"></canvas>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3>Capital Prestado por Mes</h3>
+                    <canvas id="chartPrestado"></canvas>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3>Crecimiento del Capital</h3>
+                    <canvas id="chartCrecimiento"></canvas>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3>Cobros Recibidos</h3>
+                    <canvas id="chartCobros"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: CLIENTES -->
+        <section id="clientes" class="section">
+            <div class="section-header">
+                <h2>Gestión de Clientes</h2>
+                <button class="btn-primary" id="btnNuevoCliente">+ Nuevo Cliente</button>
+            </div>
+
+            <div class="card">
+                <div class="search-box">
+                    <input type="text" id="searchCliente" placeholder="🔍 Buscar cliente...">
+                </div>
+                <div class="table-container">
+                    <table id="tablaClientes">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Teléfono</th>
+                                <th>Score</th>
+                                <th>Préstamos</th>
+                                <th>Total Prestado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: PRÉSTAMOS -->
+        <section id="prestamos" class="section">
+            <div class="section-header">
+                <h2>Gestión de Préstamos</h2>
+                <button class="btn-primary" id="btnNuevoPrestamo">+ Nuevo Préstamo</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="activos">Activos</button>
+                <button class="tab-btn" data-tab="finalizados">Finalizados</button>
+                <button class="tab-btn" data-tab="todos">Todos</button>
+            </div>
+
+            <div class="card">
+                <div id="listaPrestamos" class="prestamos-list"></div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: PAGOS -->
+        <section id="pagos" class="section">
+            <div class="section-header">
+                <h2>Historial de Pagos</h2>
+                <div class="filters">
+                    <select id="filtroPagosCliente">
+                        <option value="">Todos los clientes</option>
+                    </select>
+                    <select id="filtroPagosMes">
+                        <option value="">Todos los meses</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="table-container">
+                    <table id="tablaPagos">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Préstamo</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: ANALYTICS -->
+        <section id="analytics" class="section">
+            <div class="section-header">
+                <h2>Análisis del Negocio</h2>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>Tasa Promedio de Ganancia</h4>
+                    <span class="big-number" id="tasaGanancia">0%</span>
+                </div>
+                <div class="metric-card">
+                    <h4>Capital Promedio Invertido</h4>
+                    <span class="big-number" id="capitalPromedio">$0</span>
+                </div>
+                <div class="metric-card">
+                    <h4>Rentabilidad Mensual</h4>
+                    <span class="big-number" id="rentabilidadMensual">0%</span>
+                </div>
+                <div class="metric-card">
+                    <h4>Rotación de Capital</h4>
+                    <span class="big-number" id="rotacionCapital">0x</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Top 5 Mejores Clientes</h3>
+                <div id="topClientes" class="ranking-list"></div>
+            </div>
+
+            <div class="card">
+                <h3>⚠️ Clientes de Alto Riesgo</h3>
+                <div id="clientesRiesgo" class="ranking-list"></div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: SIMULADOR -->
+        <section id="simulador" class="section">
+            <div class="section-header">
+                <h2>Simulador de Crecimiento</h2>
+            </div>
+
+            <div class="card">
+                <h3>Configuración de Simulación</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Capital Inicial</label>
+                        <input type="number" id="simCapitalInicial" placeholder="10000">
+                    </div>
+                    <div class="form-group">
+                        <label>Ganancia Promedio por Préstamo (%)</label>
+                        <input type="number" id="simGananciaPromedio" placeholder="20">
+                    </div>
+                    <div class="form-group">
+                        <label>Préstamos por Mes</label>
+                        <input type="number" id="simPrestamosMes" placeholder="10">
+                    </div>
+                    <div class="form-group">
+                        <label>% de Reinversión</label>
+                        <input type="number" id="simReinversion" placeholder="100">
+                    </div>
+                </div>
+                <button class="btn-primary" id="btnSimular">Simular Crecimiento</button>
+            </div>
+
+            <div class="card">
+                <h3>Proyección de Crecimiento</h3>
+                <canvas id="chartSimulacion"></canvas>
+            </div>
+
+            <div class="metrics-grid" id="resultadosSimulacion"></div>
+        </section>
+
+        <!-- SECCIÓN: CHATBOT -->
+        <section id="chatbot" class="section">
+            <div class="section-header">
+                <h2>🤖 Asistente Financiero IA</h2>
+            </div>
+
+            <div class="card chatbot-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Pregúntame sobre tus préstamos, clientes, ganancias...">
+                    <button id="btnSendChat">Enviar</button>
+                </div>
+                <div class="chat-suggestions">
+                    <button class="suggestion-btn">¿Qué préstamos vencen hoy?</button>
+                    <button class="suggestion-btn">¿Cuánto gané este mes?</button>
+                    <button class="suggestion-btn">¿Qué clientes son riesgosos?</button>
+                    <button class="suggestion-btn">¿Cuál es mi capital disponible?</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Nuevo Cliente -->
+    <div id="modalCliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Cliente</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formCliente">
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono *</label>
+                        <input type="tel" name="telefono" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <input type="text" name="direccion">
+                    </div>
+                    <div class="form-group">
+                        <label>Notas</label>
+                        <textarea name="notas" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar Cliente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nuevo Préstamo -->
+    <div id="modalPrestamo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Préstamo</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formPrestamo">
+                    <div class="form-group">
+                        <label>Cliente *</label>
+                        <select name="clienteId" required id="selectCliente">
+                            <option value="">Seleccione un cliente</option>
+                        </select>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Dinero Entregado *</label>
+                            <input type="number" name="montoEntregado" required step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad de Cuotas *</label>
+                            <input type="number" name="cantidadCuotas" required min="1">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Valor de Cuota *</label>
+                            <input type="number" name="valorCuota" required step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Frecuencia de Pago *</label>
+                            <select name="frecuencia" required>
+                                <option value="semanal">Semanal</option>
+                                <option value="quincenal">Quincenal</option>
+                                <option value="mensual">Mensual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Fecha de Inicio *</label>
+                            <input type="date" name="fechaInicio" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha Primer Pago *</label>
+                            <input type="date" name="fechaPrimerPago" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notas</label>
+                        <textarea name="notas" rows="2"></textarea>
+                    </div>
+                    <div class="info-box" id="infoCalculos">
+                        <p><strong>Total a Cobrar:</strong> <span id="totalCobrarCalc">$0</span></p>
+                        <p><strong>Ganancia:</strong> <span id="gananciaCalc">$0</span></p>
+                        <p><strong>Tasa de Interés:</strong> <span id="tasaCalc">0%</span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                        <button type="submit" class="btn-primary">Crear Préstamo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Pago -->
+    <div id="modalPago" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Pago</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formPago">
+                    <input type="hidden" name="prestamoId" id="pagoPrestamoId">
+                    <div class="form-group">
+                        <label>Monto del Pago *</label>
+                        <input type="number" name="monto" id="pagoMonto" required step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha del Pago *</label>
+                        <input type="date" name="fecha" id="pagoFecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Notas</label>
+                        <textarea name="notas" rows="2"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                        <button type="submit" class="btn-primary">Registrar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Perfil Cliente -->
+    <div id="modalPerfilCliente" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="perfilClienteNombre"></h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="perfilClienteContenido"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/storage.js"></script>
+    <script src="js/clientes.js"></script>
+    <script src="js/prestamos.js"></script>
+    <script src="js/pagos.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/simulador.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- PWA Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('pwa/service-worker.js')
+                    .then(reg => console.log('Service Worker registrado'))
+                    .catch(err => console.log('Error al registrar SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>

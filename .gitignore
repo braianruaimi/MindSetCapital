@@ -1,0 +1,50 @@
+# MindSet Capital - .gitignore
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Local environment
+.env
+.env.local
+
+# Cache
+.cache/
+*.cache
+
+# Node modules (si decides usar npm en el futuro)
+node_modules/
+
+# Build outputs (si decides usar un build tool)
+dist/
+build/
+
+# Backups
+*.bak
+*.backup
+backup/
+
+# User data exports (si implementas export/import)
+exports/
+data/
+backups/
