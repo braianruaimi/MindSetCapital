@@ -608,13 +608,15 @@ body::before {
 
 .alerta-manana .estado-badge {
     background: linear-gradient(135deg, var(--warning), var(--warning-dark));
-    color: var(--text-inverse);
+    color: #0a0a14;
+    font-weight: 800;
     box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
 }
 
 .alerta-proximos .estado-badge {
     background: linear-gradient(135deg, var(--success), var(--success-dark));
-    color: var(--text-inverse);
+    color: #0a0a14;
+    font-weight: 800;
     box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
 }
 
@@ -746,6 +748,7 @@ th, td {
     padding: 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
 th {
@@ -754,6 +757,10 @@ th {
     text-transform: uppercase;
     font-size: 0.85rem;
     letter-spacing: 0.5px;
+}
+
+td {
+    color: var(--text-primary);
 }
 
 tbody tr {
@@ -794,6 +801,17 @@ tbody tr:hover {
     color: var(--text-primary);
 }
 
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.form-group select option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
@@ -818,6 +836,11 @@ tbody tr:hover {
     margin-bottom: 1rem;
     background: var(--bg-tertiary);
     color: var(--text-primary);
+}
+
+.search-box input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
     transition: var(--transition);
 }
 
@@ -1200,6 +1223,11 @@ tbody tr:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     transition: var(--transition);
+}
+
+.chat-input input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
 }
 
 .chat-input input:focus {
@@ -1998,4 +2026,66 @@ tbody tr:hover {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-light);
+}
+
+/* ============================================
+   CORRECCIONES DE CONTRASTE Y VISIBILIDAD
+   Asegura que todo el texto sea visible sobre el fondo oscuro
+   ============================================ */
+
+/* Asegurar que todos los inputs tengan texto visible */
+input:not([type="checkbox"]):not([type="radio"]), 
+textarea, 
+select {
+    color: var(--text-primary) !important;
+    background: var(--bg-tertiary) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}
+
+/* Asegurar que todas las opciones de select sean visibles */
+select option {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Asegurar visibilidad en elementos de tabla */
+table tbody td {
+    color: var(--text-primary) !important;
+}
+
+table tbody tr {
+    color: var(--text-primary);
+}
+
+/* Links visibles */
+a:not([class*="btn-"]) {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+a:not([class*="btn-"]):hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+}
+
+/* Texto en listas */
+ul, ol, li {
+    color: var(--text-primary);
+}
+
+/* Asegurar que labels sean visibles */
+label {
+    color: var(--text-secondary) !important;
+}
+
+/* Textos en secciones principales */
+section p,
+section div,
+section span {
+    color: inherit;
 }
