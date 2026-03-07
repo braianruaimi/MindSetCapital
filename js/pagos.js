@@ -66,16 +66,69 @@ const PagosModule = {
         const prestamo = Storage.getPrestamo(prestamoId);
         if (!prestamo) return;
 
+        // Limpiar ID de edición
+        document.getElementById('pagoId').value = '';
         document.getElementById('pagoPrestamoId').value = prestamoId;
         document.getElementById('pagoMonto').value = prestamo.valorCuota;
         document.getElementById('pagoFecha').value = new Date().toISOString().split('T')[0];
 
+        // Cambiar título
+        const modalHeader = modal.querySelector('.modal-header h3');
+        if (modalHeader) modalHeader.textContent = '💰 Registrar Pago';
+
         modal.classList.add('active');
+    },
+
+    openEditPago(pagoId) {
+        const pago = Storage.getPago(pagoId);
+        if (!pago) return;
+
+        const prestamo = Storage.getPrestamo(pago.prestamoId);
+        if (!prestamo) return;
+
+        const modal = document.getElementById('modalPago');
+        const form = document.getElementById('formPago');
+
+        // Llenar formulario
+        document.getElementById('pagoId').value = pago.id;
+        document.getElementById('pagoPrestamoId').value = pago.prestamoId;
+        document.getElementById('pagoMonto').value = pago.monto;
+        document.getElementById('pagoFecha').value = pago.fecha;
+        document.getElementById('pagoNotas').value = pago.notas || '';
+
+        // Cambiar título
+        const modalHeader = modal.querySelector('.modal-header h3');
+        if (modalHeader) modalHeader.textContent = '✏️ Editar Pago';
+
+        modal.classList.add('active');
+    },
+
+    deletePago(pagoId) {
+        if (!confirm('¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        const pago = Storage.getPago(pagoId);
+        if (!pago) return;
+
+        Storage.deletePago(pagoId);
+        
+        ClientesModule.showNotification('Pago eliminado exitosamente', 'success');
+        
+        // Actualizar vistas
+        this.renderPagos();
+        if (typeof PrestamosModule !== 'undefined') {
+            PrestamosModule.renderPrestamos();
+        }
+        if (typeof DashboardModule !== 'undefined') {
+            DashboardModule.init();
+        }
     },
 
     savePago(form) {
         const formData = new FormData(form);
         
+        const pagoId = formData.get('pagoId');
         const pago = {
             prestamoId: formData.get('prestamoId'),
             monto: parseFloat(formData.get('monto')),
@@ -83,9 +136,16 @@ const PagosModule = {
             notas: formData.get('notas')
         };
 
-        Storage.addPago(pago);
+        if (pagoId) {
+            // Editar pago existente
+            Storage.updatePago(pagoId, pago);
+            ClientesModule.showNotification('Pago actualizado exitosamente', 'success');
+        } else {
+            // Crear nuevo pago
+            Storage.addPago(pago);
+            ClientesModule.showNotification('Pago registrado exitosamente', 'success');
+        }
         
-        ClientesModule.showNotification('Pago registrado exitosamente', 'success');
         ClientesModule.closeModals();
         
         // Actualizar vistas
@@ -126,7 +186,7 @@ const PagosModule = {
         pagos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         if (pagos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay pagos registrados</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay pagos registrados</td></tr>';
             return;
         }
 
@@ -141,6 +201,14 @@ const PagosModule = {
                     <td>$${parseFloat(prestamo?.montoEntregado || 0).toLocaleString()}</td>
                     <td>$${parseFloat(pago.monto).toLocaleString()}</td>
                     <td><span class="score-badge score-excelente">Pagado</span></td>
+                    <td>
+                        <button class="btn-small btn-info" onclick="PagosModule.openEditPago('${pago.id}')" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="btn-small btn-danger" onclick="PagosModule.deletePago('${pago.id}')" title="Eliminar">
+                            🗑️
+                        </button>
+                    </td>
                 </tr>
             `;
         }).join('');

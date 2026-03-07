@@ -196,6 +196,44 @@ const Storage = {
         return pago;
     },
 
+    getPago(id) {
+        const pagos = this.getPagos();
+        return pagos.find(p => p.id === id);
+    },
+
+    updatePago(id, data) {
+        const pagos = this.getPagos();
+        const index = pagos.findIndex(p => p.id === id);
+        if (index !== -1) {
+            pagos[index] = { ...pagos[index], ...data };
+            this.set(this.KEYS.PAGOS, pagos);
+            return pagos[index];
+        }
+        return null;
+    },
+
+    deletePago(id) {
+        const pago = this.getPago(id);
+        if (!pago) return false;
+
+        const pagos = this.getPagos();
+        const filtered = pagos.filter(p => p.id !== id);
+        this.set(this.KEYS.PAGOS, filtered);
+
+        // Actualizar préstamo (restar una cuota pagada)
+        const prestamo = this.getPrestamo(pago.prestamoId);
+        if (prestamo && prestamo.cuotasPagadas > 0) {
+            prestamo.cuotasPagadas--;
+            if (prestamo.estado === 'finalizado' && prestamo.cuotasPagadas < prestamo.cantidadCuotas) {
+                prestamo.estado = 'activo';
+                prestamo.fechaFinalizacion = null;
+            }
+            this.updatePrestamo(prestamo.id, prestamo);
+        }
+
+        return true;
+    },
+
     // ============================================
     // CONFIGURACIÓN Y CAPITAL
     // ============================================

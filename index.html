@@ -221,6 +221,7 @@
                                 <th>Préstamo</th>
                                 <th>Monto</th>
                                 <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -435,6 +436,7 @@
             </div>
             <div class="modal-body">
                 <form id="formPago">
+                    <input type="hidden" name="pagoId" id="pagoId">
                     <input type="hidden" name="prestamoId" id="pagoPrestamoId">
                     <div class="form-group">
                         <label>Monto del Pago *</label>
@@ -446,11 +448,11 @@
                     </div>
                     <div class="form-group">
                         <label>Notas</label>
-                        <textarea name="notas" rows="2"></textarea>
+                        <textarea name="notas" id="pagoNotas" rows="2"></textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary close-modal">Cancelar</button>
-                        <button type="submit" class="btn-primary">Registrar Pago</button>
+                        <button type="submit" class="btn-primary">Guardar Pago</button>
                     </div>
                 </form>
             </div>
