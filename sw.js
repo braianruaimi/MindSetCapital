@@ -3,7 +3,7 @@
 // MindSet Capital
 // ============================================
 
-const CACHE_NAME = 'mindset-capital-v4';
+const CACHE_NAME = 'mindset-capital-v5';
 const urlsToCache = [
     './',
     './index.html',
