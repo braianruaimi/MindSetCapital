@@ -78,6 +78,9 @@ body::before {
     background: var(--bg-secondary);
     backdrop-filter: blur(10px);
     box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
@@ -98,21 +101,64 @@ body::before {
 }
 
 .nav-menu {
+    display: none;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-lg);
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-bottom: 2px solid var(--primary);
+    transition: var(--transition);
+    z-index: 999;
+}
+
+.nav-menu.active {
     display: flex;
-    gap: 0.5rem;
+}
+
+@media (min-width: 769px) {
+    .nav-menu {
+        display: flex !important;
+        position: static;
+        flex-direction: row;
+        width: auto;
+        padding: 0;
+        box-shadow: none;
+        border-bottom: none;
+        gap: 0.5rem;
+    }
 }
 
 .nav-btn {
-    background: transparent;
-    border: none;
-    padding: 0.75rem 1.25rem;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: var(--transition);
+    padding: 1rem 1.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--border-radius);
     font-weight: 500;
+    transition: var(--transition);
     position: relative;
+    overflow: hidden;
+    width: 100%;
+    text-align: left;
+    font-size: 1rem;
+}
+
+@media (min-width: 769px) {
+    .nav-btn {
+        width: auto;
+        padding: 0.75rem 1.25rem;
+        background: transparent;
+        border: 1px solid transparent;
+        text-align: center;
+        font-size: 0.95rem;
+    }
 }
 
 .nav-btn::before {
@@ -148,11 +194,27 @@ body::before {
 }
 
 .menu-toggle {
-    display: none;
-    background: transparent;
-    border: none;
+    display: block;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     font-size: 1.5rem;
+    color: var(--text-primary);
     cursor: pointer;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.menu-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+@media (min-width: 769px) {
+    .menu-toggle {
+        display: none;
+    }
 }
 
 /* ============================================
@@ -162,9 +224,15 @@ body::before {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1rem;
     position: relative;
     z-index: 1;
+}
+
+@media (min-width: 768px) {
+    .container {
+        padding: 2rem;
+    }
 }
 
 .section {
@@ -222,9 +290,23 @@ body::before {
 
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
 }
 
 .metric-card {
@@ -373,7 +455,7 @@ body::before {
    ============================================ */
 
 .btn-primary, .btn-secondary, .btn-danger, .btn-success {
-    padding: 0.75rem 1.5rem;
+    padding: 0.875rem 1.5rem;
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
@@ -382,6 +464,12 @@ body::before {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    min-height: 44px;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .btn-primary {
@@ -653,9 +741,17 @@ tbody tr:hover {
 
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .charts-grid {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
 }
 
 .chart-card {
@@ -1069,78 +1165,27 @@ tbody tr:hover {
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - MOBILE FIRST
    ============================================ */
 
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
+/* Mejoras para móviles pequeños */
+@media (max-width: 480px) {
+    .nav-brand h1 {
+        font-size: 1.125rem;
     }
 
-    .navbar {
-        padding: 1rem;
-    }
-
-    .nav-menu {
-        position: fixed;
-        top: 70px;
-        left: -100%;
-        flex-direction: column;
-        background: var(--bg-secondary);
-        backdrop-filter: blur(10px);
-        width: 100%;
-        box-shadow: var(--shadow);
-        padding: 1rem;
-        transition: var(--transition);
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .nav-menu.active {
-        left: 0;
-    }
-
-    .menu-toggle {
-        display: block;
-    }
-
-    .metrics-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .charts-grid {
-        grid-template-columns: 1fr;
+    .section-header h2 {
+        font-size: 1.375rem;
     }
 
     .section-header {
         flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
+        gap: 0.75rem;
+        align-items: stretch;
     }
 
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .modal-content {
-        width: 95%;
-    }
-
-    table {
-        font-size: 0.875rem;
-    }
-
-    th, td {
-        padding: 0.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .nav-brand h1 {
-        font-size: 1.25rem;
-    }
-
-    .section-header h2 {
-        font-size: 1.5rem;
+    .section-header .btn-primary {
+        width: 100%;
     }
 
     .metric-value {
@@ -1153,6 +1198,79 @@ tbody tr:hover {
 
     .prestamo-info {
         grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    table {
+        font-size: 0.8125rem;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    th, td {
+        padding: 0.625rem 0.5rem;
+    }
+
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn {
+        flex-shrink: 0;
+        min-width: 100px;
+    }
+}
+
+/* Tabletas y móviles grandes */
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-width: 600px;
+    }
+
+    table {
+        font-size: 0.875rem;
+    }
+
+    th, td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .client-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Escritorio pequeño */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .client-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
