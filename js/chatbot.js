@@ -5,13 +5,17 @@
 const ChatbotModule = {
 
     listenersInitialized: false,
+    welcomeShown: false,
 
     init() {
         if (!this.listenersInitialized) {
             this.setupEventListeners();
             this.listenersInitialized = true;
         }
-        this.showWelcomeMessage();
+        if (!this.welcomeShown) {
+            this.showWelcomeMessage();
+            this.welcomeShown = true;
+        }
         console.log('✅ Chatbot inicializado');
     },
 
