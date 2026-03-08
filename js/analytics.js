@@ -10,9 +10,9 @@ const AnalyticsModule = {
         this.showClientesRiesgo();
     },
 
-    calculateAnalytics() {
-        const prestamos = Storage.getPrestamos();
-        const pagos = Storage.getPagos();
+    async calculateAnalytics() {
+        const prestamos = await Storage.getPrestamos();
+        const pagos = await Storage.getPagos();
 
         // Tasa promedio de ganancia
         let totalTasa = 0;
@@ -45,12 +45,14 @@ const AnalyticsModule = {
         const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
         const pagosMes = pagos.filter(p => new Date(p.fecha) >= inicioMes);
         
-        const gananciaMes = pagosMes.reduce((sum, pago) => {
-            const prestamo = Storage.getPrestamo(pago.prestamoId);
-            if (!prestamo) return sum;
-            const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
-            return sum + gananciaUnitaria;
-        }, 0);
+        let gananciaMes = 0;
+        for (const pago of pagosMes) {
+            const prestamo = await Storage.getPrestamo(pago.prestamoId);
+            if (prestamo) {
+                const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
+                gananciaMes += gananciaUnitaria;
+            }
+        }
 
         const rentabilidad = totalPrestadoActivo > 0 
             ? ((gananciaMes / totalPrestadoActivo) * 100).toFixed(2)
@@ -71,32 +73,32 @@ const AnalyticsModule = {
         document.getElementById('rotacionCapital').textContent = `${rotacion}x`;
     },
 
-    showTopClientes() {
+    async showTopClientes() {
         const container = document.getElementById('topClientes');
         if (!container) return;
 
-        const clientes = Storage.getClientes();
+        const clientes = await Storage.getClientes();
         const rankings = [];
 
-        clientes.forEach(cliente => {
-            const prestamos = Storage.getPrestamosByCliente(cliente.id);
+        for (const cliente of clientes) {
+            const prestamos = await Storage.getPrestamosByCliente(cliente.id);
             let gananciaGenerada = 0;
 
-            prestamos.forEach(prestamo => {
-                const pagos = Storage.getPagosByPrestamo(prestamo.id);
+            for (const prestamo of prestamos) {
+                const pagos = await Storage.getPagosByPrestamo(prestamo.id);
                 const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
                 gananciaGenerada += (totalPagado - parseFloat(prestamo.montoEntregado));
-            });
+            }
 
             if (gananciaGenerada > 0) {
                 rankings.push({
                     cliente: cliente.nombre,
                     ganancia: gananciaGenerada,
                     prestamos: prestamos.length,
-                    score: ClientesModule.calculateScore(cliente.id)
+                    score: await ClientesModule.calculateScore(cliente.id)
                 });
             }
-        });
+        }
 
         // Ordenar por ganancia
         rankings.sort((a, b) => b.ganancia - a.ganancia);
@@ -123,16 +125,16 @@ const AnalyticsModule = {
         }).join('');
     },
 
-    showClientesRiesgo() {
+    async showClientesRiesgo() {
         const container = document.getElementById('clientesRiesgo');
         if (!container) return;
 
-        const clientes = Storage.getClientes();
+        const clientes = await Storage.getClientes();
         const riesgosos = [];
 
-        clientes.forEach(cliente => {
-            const score = ClientesModule.calculateScore(cliente.id);
-            const prestamos = Storage.getPrestamosByCliente(cliente.id);
+        for (const cliente of clientes) {
+            const score = await ClientesModule.calculateScore(cliente.id);
+            const prestamos = await Storage.getPrestamosByCliente(cliente.id);
             const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
 
             if (score < 60 && prestamosActivos.length > 0) {
@@ -146,7 +148,7 @@ const AnalyticsModule = {
                     }, 0)
                 });
             }
-        });
+        }
 
         // Ordenar por score (peor primero)
         riesgosos.sort((a, b) => a.score - b.score);

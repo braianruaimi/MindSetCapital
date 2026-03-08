@@ -17,9 +17,9 @@ const SimuladorModule = {
         });
     },
 
-    loadDefaultValues() {
-        const config = Storage.getConfig();
-        const prestamos = Storage.getPrestamos();
+    async loadDefaultValues() {
+        const config = await Storage.getConfig();
+        const prestamos = await Storage.getPrestamos();
         
         // Capital inicial = configuración
         document.getElementById('simCapitalInicial').value = config.capitalInicial || 10000;

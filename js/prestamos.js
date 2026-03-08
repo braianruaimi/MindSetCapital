@@ -16,19 +16,19 @@ const PrestamosModule = {
         // Botón nuevo préstamo
         const btnNuevo = document.getElementById('btnNuevoPrestamo');
         if (btnNuevo) {
-            btnNuevo.addEventListener('click', (e) => {
+            btnNuevo.addEventListener('click', async (e) => {
                 e.preventDefault();
                 console.log('Click en Nuevo Préstamo');
-                this.openModal();
+                await this.openModal();
             });
         }
 
         // Formulario
         const formPrestamo = document.getElementById('formPrestamo');
         if (formPrestamo) {
-            formPrestamo.addEventListener('submit', (e) => {
+            formPrestamo.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                this.savePrestamo(e.target);
+                await this.savePrestamo(e.target);
             });
         }
 
@@ -55,11 +55,11 @@ const PrestamosModule = {
 
         // Tabs de filtro
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 this.currentFilter = e.target.dataset.tab;
-                this.renderPrestamos();
+                await this.renderPrestamos();
             });
         });
         
@@ -74,16 +74,16 @@ const PrestamosModule = {
         console.log('✅ Event listeners de préstamos configurados');
     },
 
-    loadClientesSelect() {
+    async loadClientesSelect() {
         const select = document.getElementById('selectCliente');
         if (!select) return;
 
-        const clientes = Storage.getClientes();
+        const clientes = await Storage.getClientes();
         select.innerHTML = '<option value="">Seleccione un cliente</option>' +
             clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
     },
 
-    openModal(prestamoId = null) {
+    async openModal(prestamoId = null) {
         const modal = document.getElementById('modalPrestamo');
         const form = document.getElementById('formPrestamo');
         form.reset();
@@ -99,7 +99,7 @@ const PrestamosModule = {
         
         if (isEdit) {
             // Cargar datos del préstamo
-            const prestamo = Storage.getPrestamo(prestamoId);
+            const prestamo = await Storage.getPrestamo(prestamoId);
             if (prestamo) {
                 document.getElementById('prestamoId').value = prestamoId;
                 document.getElementById('montoEntregado').value = prestamo.montoEntregado;
@@ -131,7 +131,7 @@ const PrestamosModule = {
             document.querySelector('input[name="tipoCliente"][value="nuevo"]').checked = true;
             this.toggleTipoCliente('nuevo');
             
-            this.loadClientesSelect();
+            await this.loadClientesSelect();
         }
         
         modal.classList.add('active');
@@ -152,7 +152,7 @@ const PrestamosModule = {
         document.getElementById('tasaCalc').textContent = `${tasa.toFixed(2)}%`;
     },
 
-    savePrestamo(form) {
+    async savePrestamo(form) {
         const formData = new FormData(form);
         const prestamoId = formData.get('prestamoId');
         const isEdit = prestamoId && prestamoId !== '';
@@ -161,7 +161,7 @@ const PrestamosModule = {
         
         if (isEdit) {
             // Modo edición: mantener el cliente existente
-            const prestamoExistente = Storage.getPrestamo(prestamoId);
+            const prestamoExistente = await Storage.getPrestamo(prestamoId);
             clienteId = prestamoExistente.clienteId;
         } else {
             // Modo creación: determinar cliente
@@ -186,16 +186,16 @@ const PrestamosModule = {
                 
                 // Buscar cliente por teléfono si se proporcionó
                 if (clienteData.telefono) {
-                    const clienteExistente = this.buscarClientePorTelefono(clienteData.telefono);
+                    const clienteExistente = await this.buscarClientePorTelefono(clienteData.telefono);
                     if (clienteExistente) {
                         clienteId = clienteExistente.id;
                         this.showNotification(`Cliente existente encontrado: ${clienteExistente.nombre}`, 'info');
                     } else {
-                        const nuevoCliente = Storage.addCliente(clienteData);
+                        const nuevoCliente = await Storage.addCliente(clienteData);
                         clienteId = nuevoCliente.id;
                     }
                 } else {
-                    const nuevoCliente = Storage.addCliente(clienteData);
+                    const nuevoCliente = await Storage.addCliente(clienteData);
                     clienteId = nuevoCliente.id;
                 }
             }
@@ -223,15 +223,15 @@ const PrestamosModule = {
             prestamo.cuotasPagadas = cuotasPagadas;
             prestamo.estado = cuotasPagadas >= prestamo.cantidadCuotas ? 'finalizado' : 'activo';
             
-            Storage.updatePrestamo(prestamoId, prestamo);
+            await Storage.updatePrestamo(prestamoId, prestamo);
             this.showNotification('Préstamo actualizado exitosamente', 'success');
         } else {
-            Storage.addPrestamo(prestamo);
+            await Storage.addPrestamo(prestamo);
             this.showNotification('Préstamo creado exitosamente', 'success');
         }
         
         this.closeModals();
-        this.renderPrestamos();
+        await this.renderPrestamos();
         
         if (typeof DashboardModule !== 'undefined') {
             DashboardModule.init();
@@ -247,11 +247,11 @@ const PrestamosModule = {
         });
     },
 
-    renderPrestamos() {
+    async renderPrestamos() {
         const container = document.getElementById('listaPrestamos');
         if (!container) return;
 
-        let prestamos = Storage.getPrestamos();
+        let prestamos = await Storage.getPrestamos();
         
         // Filtrar según tab activo
         if (this.currentFilter === 'activos') {
@@ -265,8 +265,9 @@ const PrestamosModule = {
             return;
         }
 
-        container.innerHTML = prestamos.map(prestamo => {
-            const cliente = Storage.getCliente(prestamo.clienteId);
+        const prestamosHTML = [];
+        for (const prestamo of prestamos) {
+            const cliente = await Storage.getCliente(prestamo.clienteId);
             const progreso = (prestamo.cuotasPagadas / prestamo.cantidadCuotas) * 100;
             const cuotasRestantes = prestamo.cantidadCuotas - prestamo.cuotasPagadas;
             const montoRestante = cuotasRestantes * prestamo.valorCuota;
@@ -276,7 +277,7 @@ const PrestamosModule = {
             const diasHastaPago = this.getDiasHastaPago(proximoPago);
             const estadoPago = this.getEstadoPago(diasHastaPago);
 
-            return `
+            prestamosHTML.push(`
                 <div class="prestamo-card">
                     <div class="prestamo-header">
                         <div>
@@ -347,8 +348,9 @@ const PrestamosModule = {
                         </button>
                     </div>
                 </div>
-            `;
-        }).join('');
+            `);
+        }
+        container.innerHTML = prestamosHTML.join('');
     },
 
     calculateProximoPago(prestamo) {
@@ -409,10 +411,10 @@ const PrestamosModule = {
         }
     },
 
-    viewDetails(prestamoId) {
-        const prestamo = Storage.getPrestamo(prestamoId);
-        const cliente = Storage.getCliente(prestamo.clienteId);
-        const pagos = Storage.getPagosByPrestamo(prestamoId);
+    async viewDetails(prestamoId) {
+        const prestamo = await Storage.getPrestamo(prestamoId);
+        const cliente = await Storage.getCliente(prestamo.clienteId);
+        const pagos = await Storage.getPagosByPrestamo(prestamoId);
 
         const modal = document.getElementById('modalPerfilCliente');
         document.getElementById('perfilClienteNombre').textContent = `Préstamo - ${cliente?.nombre}`;
@@ -501,9 +503,9 @@ const PrestamosModule = {
     /**
      * Buscar cliente por teléfono
      */
-    buscarClientePorTelefono(telefono) {
+    async buscarClientePorTelefono(telefono) {
         if (!telefono) return null;
-        const clientes = Storage.getClientes();
+        const clientes = await Storage.getClientes();
         return clientes.find(c => c.telefono === telefono);
     },
 
@@ -530,8 +532,8 @@ const PrestamosModule = {
     /**
      * Abrir modal para editar préstamo
      */
-    editPrestamo(prestamoId) {
-        this.openModal(prestamoId);
+    async editPrestamo(prestamoId) {
+        await this.openModal(prestamoId);
     },
 
     /**

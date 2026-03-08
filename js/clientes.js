@@ -13,27 +13,27 @@ const ClientesModule = {
         // Botón nuevo cliente
         const btnNuevo = document.getElementById('btnNuevoCliente');
         if (btnNuevo) {
-            btnNuevo.addEventListener('click', (e) => {
+            btnNuevo.addEventListener('click', async (e) => {
                 e.preventDefault();
                 console.log('Click en Nuevo Cliente');
-                this.openModal();
+                await this.openModal();
             });
         }
 
         // Formulario de cliente
         const formCliente = document.getElementById('formCliente');
         if (formCliente) {
-            formCliente.addEventListener('submit', (e) => {
+            formCliente.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                this.saveCliente(e.target);
+                await this.saveCliente(e.target);
             });
         }
 
         // Búsqueda de clientes
         const searchInput = document.getElementById('searchCliente');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchClientes(e.target.value);
+            searchInput.addEventListener('input', async (e) => {
+                await this.searchClientes(e.target.value);
             });
         }
 
@@ -48,7 +48,7 @@ const ClientesModule = {
         console.log('✅ Event listeners de clientes configurados');
     },
 
-    openModal(clienteId = null) {
+    async openModal(clienteId = null) {
         const modal = document.getElementById('modalCliente');
         const form = document.getElementById('formCliente');
         
@@ -60,7 +60,7 @@ const ClientesModule = {
         form.reset();
 
         if (clienteId) {
-            const cliente = Storage.getCliente(clienteId);
+            const cliente = await Storage.getCliente(clienteId);
             if (cliente) {
                 form.nombre.value = cliente.nombre;
                 form.telefono.value = cliente.telefono;
@@ -82,7 +82,7 @@ const ClientesModule = {
         });
     },
 
-    saveCliente(form) {
+    async saveCliente(form) {
         const formData = new FormData(form);
         const cliente = {
             nombre: formData.get('nombre'),
@@ -92,15 +92,15 @@ const ClientesModule = {
         };
 
         if (form.dataset.editId) {
-            Storage.updateCliente(form.dataset.editId, cliente);
+            await Storage.updateCliente(form.dataset.editId, cliente);
             this.showNotification('Cliente actualizado correctamente', 'success');
         } else {
-            Storage.addCliente(cliente);
+            await Storage.addCliente(cliente);
             this.showNotification('Cliente agregado correctamente', 'success');
         }
 
         this.closeModals();
-        this.renderClientes();
+        await this.renderClientes();
         
         // Actualizar dashboard si está visible
         if (typeof DashboardModule !== 'undefined') {
@@ -108,25 +108,27 @@ const ClientesModule = {
         }
     },
 
-    renderClientes(clientes = null) {
+    async renderClientes(clientes = null) {
         const tbody = document.querySelector('#tablaClientes tbody');
         if (!tbody) return;
 
-        const clientesList = clientes || Storage.getClientes();
+        const clientesList = clientes || await Storage.getClientes();
         
         if (clientesList.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay clientes registrados</td></tr>';
             return;
         }
 
-        tbody.innerHTML = clientesList.map(cliente => {
-            const prestamos = Storage.getPrestamosByCliente(cliente.id);
+        const clientesHTML = [];
+        for (const cliente of clientesList) {
+            const prestamos = await Storage.getPrestamosByCliente(cliente.id);
             const prestamosActivos = prestamos.filter(p => p.estado === 'activo').length;
             const totalPrestado = prestamos.reduce((sum, p) => sum + parseFloat(p.montoEntregado || 0), 0);
-            const score = this.calculateScore(cliente.id);
+            const score = await this.calculateScore(cliente.id);
             const scoreClass = this.getScoreClass(score);
 
-            return `
+            clientesHTML.push(`
+
                 <tr>
                     <td><strong>${cliente.nombre}</strong></td>
                     <td>${cliente.telefono}</td>
@@ -142,21 +144,22 @@ const ClientesModule = {
                         </button>
                     </td>
                 </tr>
-            `;
-        }).join('');
+            `);
+        }
+        tbody.innerHTML = clientesHTML.join('');
     },
 
-    searchClientes(query) {
-        const clientes = Storage.getClientes();
+    async searchClientes(query) {
+        const clientes = await Storage.getClientes();
         const filtered = clientes.filter(c => 
             c.nombre.toLowerCase().includes(query.toLowerCase()) ||
             c.telefono.includes(query)
         );
-        this.renderClientes(filtered);
+        await this.renderClientes(filtered);
     },
 
-    calculateScore(clienteId) {
-        const prestamos = Storage.getPrestamosByCliente(clienteId);
+    async calculateScore(clienteId) {
+        const prestamos = await Storage.getPrestamosByCliente(clienteId);
         if (prestamos.length === 0) return 100;
 
         let score = 100;
@@ -164,8 +167,8 @@ const ClientesModule = {
         let pagosAtrasados = 0;
         let pagosAtiempo = 0;
 
-        prestamos.forEach(prestamo => {
-            const pagos = Storage.getPagosByPrestamo(prestamo.id);
+        for (const prestamo of prestamos) {
+            const pagos = await Storage.getPagosByPrestamo(prestamo.id);
             totalPagos += pagos.length;
 
             pagos.forEach(pago => {
@@ -189,7 +192,7 @@ const ClientesModule = {
                     score -= Math.min(diasAtraso * 2, 30); // Máximo 30 puntos por préstamo atrasado
                 }
             }
-        });
+        }
 
         // Ajustar score por comportamiento general
         if (totalPagos > 0) {
@@ -239,23 +242,23 @@ const ClientesModule = {
         return 'Riesgoso';
     },
 
-    viewProfile(clienteId) {
-        const cliente = Storage.getCliente(clienteId);
+    async viewProfile(clienteId) {
+        const cliente = await Storage.getCliente(clienteId);
         if (!cliente) return;
 
-        const prestamos = Storage.getPrestamosByCliente(clienteId);
+        const prestamos = await Storage.getPrestamosByCliente(clienteId);
         const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
         const prestamosFinalizados = prestamos.filter(p => p.estado === 'finalizado');
         
         const totalPrestado = prestamos.reduce((sum, p) => sum + parseFloat(p.montoEntregado || 0), 0);
         let totalPagado = 0;
         
-        prestamos.forEach(prestamo => {
-            const pagos = Storage.getPagosByPrestamo(prestamo.id);
+        for (const prestamo of prestamos) {
+            const pagos = await Storage.getPagosByPrestamo(prestamo.id);
             totalPagado += pagos.reduce((sum, p) => sum + parseFloat(p.monto || 0), 0);
-        });
+        }
 
-        const score = this.calculateScore(clienteId);
+        const score = await this.calculateScore(clienteId);
         const scoreClass = this.getScoreClass(score);
 
         const modal = document.getElementById('modalPerfilCliente');

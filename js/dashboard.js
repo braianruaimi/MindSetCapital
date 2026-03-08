@@ -13,30 +13,30 @@ const DashboardModule = {
         this.showCobrosHoy();
         this.renderCharts();
         
-        document.getElementById('refreshDashboard')?.addEventListener('click', () => {
-            this.init();
+        document.getElementById('refreshDashboard')?.addEventListener('click', async () => {
+            await this.init();
             ClientesModule.showNotification('Dashboard actualizado', 'info');
         });
     },
 
-    showAlertasCobros() {
+    async showAlertasCobros() {
         const container = document.getElementById('alertasCobros');
         if (!container) return;
 
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+        const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         const cobrosProximos = [];
 
-        prestamos.forEach(prestamo => {
+        for (const prestamo of prestamos) {
             const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
             proximoPago.setHours(0, 0, 0, 0);
             const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
 
             // Mostrar cobros de hoy y próximos 3 días
             if (dias >= 0 && dias <= 3) {
-                const cliente = Storage.getCliente(prestamo.clienteId);
+                const cliente = await Storage.getCliente(prestamo.clienteId);
                 cobrosProximos.push({
                     cliente: cliente?.nombre || 'Desconocido',
                     clienteId: cliente?.id,
@@ -47,7 +47,7 @@ const DashboardModule = {
                     telefono: cliente?.telefono || ''
                 });
             }
-        });
+        }
 
         if (cobrosProximos.length === 0) {
             container.innerHTML = '';
@@ -103,11 +103,11 @@ const DashboardModule = {
         `;
     },
 
-    calculateMetrics() {
-        const prestamos = Storage.getPrestamos();
-        const clientes = Storage.getClientes();
-        const pagos = Storage.getPagos();
-        const config = Storage.getConfig();
+    async calculateMetrics() {
+        const prestamos = await Storage.getPrestamos();
+        const clientes = await Storage.getClientes();
+        const pagos = await Storage.getPagos();
+        const config = await Storage.getConfig();
 
         // Capital disponible = capital inicial + ganancias - dinero prestado activo
         const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
@@ -133,12 +133,14 @@ const DashboardModule = {
         const hoy = new Date();
         const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
         const pagosMes = pagos.filter(p => new Date(p.fecha) >= inicioMes);
-        const gananciaMes = pagosMes.reduce((sum, p) => {
-            const prestamo = Storage.getPrestamo(p.prestamoId);
-            if (!prestamo) return sum;
-            const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
-            return sum + gananciaUnitaria;
-        }, 0);
+        let gananciaMes = 0;
+        for (const p of pagosMes) {
+            const prestamo = await Storage.getPrestamo(p.prestamoId);
+            if (prestamo) {
+                const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
+                gananciaMes += gananciaUnitaria;
+            }
+        }
 
         // Actualizar DOM
         document.getElementById('capitalDisponible').textContent = `$${capitalDisponible.toLocaleString()}`;
@@ -152,12 +154,12 @@ const DashboardModule = {
             prestamos.filter(p => p.estado === 'finalizado').length;
     },
 
-    showAlerts() {
+    async showAlerts() {
         const container = document.getElementById('alertsContainer');
         if (!container) return;
 
         const alertas = [];
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+        const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
@@ -209,23 +211,23 @@ const DashboardModule = {
         container.innerHTML = alertas.join('');
     },
 
-    showCobrosHoy() {
+    async showCobrosHoy() {
         const container = document.getElementById('cobrosHoy');
         if (!container) return;
 
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+        const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         const cobrosHoy = [];
 
-        prestamos.forEach(prestamo => {
+        for (const prestamo of prestamos) {
             const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
             proximoPago.setHours(0, 0, 0, 0);
             const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
 
             if (dias <= 0) {
-                const cliente = Storage.getCliente(prestamo.clienteId);
+                const cliente = await Storage.getCliente(prestamo.clienteId);
                 cobrosHoy.push({
                     cliente: cliente?.nombre || 'Desconocido',
                     monto: prestamo.valorCuota,
@@ -233,7 +235,7 @@ const DashboardModule = {
                     prestamoId: prestamo.id
                 });
             }
-        });
+        }
 
         if (cobrosHoy.length === 0) {
             container.innerHTML = '<p class="text-muted">No hay cobros programados para hoy</p>';
@@ -268,26 +270,31 @@ const DashboardModule = {
         this.renderCobrosChart();
     },
 
-    renderGananciasChart() {
+    async renderGananciasChart() {
         const ctx = document.getElementById('chartGanancias');
         if (!ctx) return;
 
         const meses = this.getUltimos6Meses();
-        const pagos = Storage.getPagos();
+        const pagos = await Storage.getPagos();
 
-        const data = meses.map(mes => {
+        const dataPromises = meses.map(async mes => {
             const pagosMes = pagos.filter(p => {
                 const fecha = new Date(p.fecha);
                 return fecha.getMonth() === mes.month && fecha.getFullYear() === mes.year;
             });
 
-            return pagosMes.reduce((sum, pago) => {
-                const prestamo = Storage.getPrestamo(pago.prestamoId);
-                if (!prestamo) return sum;
-                const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
-                return sum + gananciaUnitaria;
-            }, 0);
+            let total = 0;
+            for (const pago of pagosMes) {
+                const prestamo = await Storage.getPrestamo(pago.prestamoId);
+                if (prestamo) {
+                    const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
+                    total += gananciaUnitaria;
+                }
+            }
+            return total;
         });
+
+        const data = await Promise.all(dataPromises);
 
         if (this.charts.ganancias) {
             this.charts.ganancias.destroy();
@@ -326,12 +333,12 @@ const DashboardModule = {
         });
     },
 
-    renderPrestadoChart() {
+    async renderPrestadoChart() {
         const ctx = document.getElementById('chartPrestado');
         if (!ctx) return;
 
         const meses = this.getUltimos6Meses();
-        const prestamos = Storage.getPrestamos();
+        const prestamos = await Storage.getPrestamos();
 
         const data = meses.map(mes => {
             return prestamos
@@ -377,35 +384,37 @@ const DashboardModule = {
         });
     },
 
-    renderCrecimientoChart() {
+    async renderCrecimientoChart() {
         const ctx = document.getElementById('chartCrecimiento');
         if (!ctx) return;
 
         const meses = this.getUltimos6Meses();
-        const pagos = Storage.getPagos();
-        const prestamos = Storage.getPrestamos();
-        const config = Storage.getConfig();
+        const pagos = await Storage.getPagos();
+        const prestamos = await Storage.getPrestamos();
+        const config = await Storage.getConfig();
         
         let capitalAcumulado = config.capitalInicial || 0;
         const data = [];
 
-        meses.forEach(mes => {
+        for (const mes of meses) {
             // Sumar ganancias del mes
             const pagosMes = pagos.filter(p => {
                 const fecha = new Date(p.fecha);
                 return fecha.getMonth() === mes.month && fecha.getFullYear() === mes.year;
             });
 
-            const gananciasMes = pagosMes.reduce((sum, pago) => {
-                const prestamo = Storage.getPrestamo(pago.prestamoId);
-                if (!prestamo) return sum;
-                const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
-                return sum + gananciaUnitaria;
-            }, 0);
+            let gananciasMes = 0;
+            for (const pago of pagosMes) {
+                const prestamo = await Storage.getPrestamo(pago.prestamoId);
+                if (prestamo) {
+                    const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
+                    gananciasMes += gananciaUnitaria;
+                }
+            }
 
             capitalAcumulado += gananciasMes;
             data.push(capitalAcumulado);
-        });
+        }
 
         if (this.charts.crecimiento) {
             this.charts.crecimiento.destroy();
@@ -444,12 +453,12 @@ const DashboardModule = {
         });
     },
 
-    renderCobrosChart() {
+    async renderCobrosChart() {
         const ctx = document.getElementById('chartCobros');
         if (!ctx) return;
 
         const meses = this.getUltimos6Meses();
-        const pagos = Storage.getPagos();
+        const pagos = await Storage.getPagos();
 
         const data = meses.map(mes => {
             return pagos

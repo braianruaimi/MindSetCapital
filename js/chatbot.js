@@ -81,8 +81,8 @@ const ChatbotModule = {
         input.value = '';
 
         // Procesar consulta
-        setTimeout(() => {
-            const response = this.processQuery(query);
+        setTimeout(async () => {
+            const response = await this.processQuery(query);
             this.addBotMessage(response);
         }, 500);
     },
@@ -105,56 +105,56 @@ const ChatbotModule = {
         container.scrollTop = container.scrollHeight;
     },
 
-    processQuery(query) {
+    async processQuery(query) {
         const lowerQuery = query.toLowerCase();
 
         // Análisis de intención
         if (this.matchesPattern(lowerQuery, ['préstamo', 'vence', 'hoy', 'cobrar', 'pago'])) {
-            return this.getPrestamosVencenHoy();
+            return await this.getPrestamosVencenHoy();
         }
         
         if (this.matchesPattern(lowerQuery, ['cliente', 'debe', 'pagar', 'semana'])) {
-            return this.getClientesDebenSemana();
+            return await this.getClientesDebenSemana();
         }
         
         if (this.matchesPattern(lowerQuery, ['ganancia', 'total', 'gané', 'cuánto'])) {
-            return this.getGananciaTotal();
+            return await this.getGananciaTotal();
         }
         
         if (this.matchesPattern(lowerQuery, ['ganancia', 'mes', 'este mes'])) {
-            return this.getGananciaMes();
+            return await this.getGananciaMes();
         }
         
         if (this.matchesPattern(lowerQuery, ['capital', 'disponible', 'tengo'])) {
-            return this.getCapitalDisponible();
+            return await this.getCapitalDisponible();
         }
         
         if (this.matchesPattern(lowerQuery, ['capital', 'prestado', 'invertido'])) {
-            return this.getCapitalPrestado();
+            return await this.getCapitalPrestado();
         }
         
         if (this.matchesPattern(lowerQuery, ['cliente', 'riesgo', 'peligroso', 'malo'])) {
-            return this.getClientesRiesgo();
+            return await this.getClientesRiesgo();
         }
         
         if (this.matchesPattern(lowerQuery, ['mejor', 'cliente', 'top', 'rentable'])) {
-            return this.getMejoresClientes();
+            return await this.getMejoresClientes();
         }
         
         if (this.matchesPattern(lowerQuery, ['resumen', 'estadística', 'general', 'overview'])) {
-            return this.getResumenGeneral();
+            return await this.getResumenGeneral();
         }
         
         if (this.matchesPattern(lowerQuery, ['recomendación', 'consejo', 'sugerencia', 'ayuda'])) {
-            return this.getRecomendaciones();
+            return await this.getRecomendaciones();
         }
         
         if (this.matchesPattern(lowerQuery, ['cliente', 'cantidad', 'cuántos'])) {
-            return this.getCantidadClientes();
+            return await this.getCantidadClientes();
         }
 
         if (this.matchesPattern(lowerQuery, ['préstamo', 'activo', 'cuántos'])) {
-            return this.getCantidadPrestamos();
+            return await this.getCantidadPrestamos();
         }
 
         // Respuesta por defecto
@@ -174,26 +174,26 @@ const ChatbotModule = {
         return keywords.some(keyword => text.includes(keyword));
     },
 
-    getPrestamosVencenHoy() {
+    async getPrestamosVencenHoy() {
         try {
-            const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+            const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
             const vencenHoy = [];
             const vencidos = [];
 
-            prestamos.forEach(prestamo => {
+            for (const prestamo of prestamos) {
                 // Verificar que PrestamosModule y su método existan
                 if (typeof PrestamosModule === 'undefined' || !PrestamosModule.calculateProximoPago) {
-                    return;
+                    continue;
                 }
                 
                 const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
                 proximoPago.setHours(0, 0, 0, 0);
                 const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
 
-                const cliente = Storage.getCliente(prestamo.clienteId);
+                const cliente = await Storage.getCliente(prestamo.clienteId);
                 const info = {
                     cliente: cliente?.nombre || 'Desconocido',
                     monto: prestamo.valorCuota,
@@ -205,7 +205,7 @@ const ChatbotModule = {
                 } else if (dias < 0) {
                     vencidos.push(info);
                 }
-            });
+            }
 
             let mensaje = '<strong>📅 Cobros de Hoy:</strong><br><br>';
 
@@ -233,24 +233,24 @@ const ChatbotModule = {
         }
     },
 
-    getClientesDebenSemana() {
+    async getClientesDebenSemana() {
         try {
-            const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+            const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
             const hoy = new Date();
             const proximaSemana = new Date();
             proximaSemana.setDate(hoy.getDate() + 7);
 
             const cobrosProximos = [];
 
-            prestamos.forEach(prestamo => {
+            for (const prestamo of prestamos) {
                 if (typeof PrestamosModule === 'undefined' || !PrestamosModule.calculateProximoPago) {
-                    return;
+                    continue;
                 }
                 
                 const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
                 
                 if (proximoPago <= proximaSemana && proximoPago >= hoy) {
-                    const cliente = Storage.getCliente(prestamo.clienteId);
+                    const cliente = await Storage.getCliente(prestamo.clienteId);
                     const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
                     
                     cobrosProximos.push({
@@ -259,7 +259,7 @@ const ChatbotModule = {
                         dias: dias
                     });
                 }
-            });
+            }
 
             if (cobrosProximos.length === 0) {
                 return '✅ No tienes cobros programados para esta semana.';
@@ -277,17 +277,17 @@ const ChatbotModule = {
         }
     },
 
-    getGananciaTotal() {
-        const prestamos = Storage.getPrestamos();
-        const pagos = Storage.getPagos();
+    async getGananciaTotal() {
+        const prestamos = await Storage.getPrestamos();
+        const pagos = await Storage.getPagos();
 
         let gananciaTotal = 0;
 
-        prestamos.forEach(prestamo => {
+        for (const prestamo of prestamos) {
             const pagosPrestamo = pagos.filter(p => p.prestamoId === prestamo.id);
             const totalPagado = pagosPrestamo.reduce((sum, p) => sum + parseFloat(p.monto), 0);
             gananciaTotal += (totalPagado - parseFloat(prestamo.montoEntregado));
-        });
+        }
 
         return `
             <strong>💰 Ganancia Total Acumulada:</strong><br><br>
@@ -296,21 +296,21 @@ const ChatbotModule = {
         `;
     },
 
-    getGananciaMes() {
-        const pagos = Storage.getPagos();
+    async getGananciaMes() {
+        const pagos = await Storage.getPagos();
         const hoy = new Date();
         const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
         
         const pagosMes = pagos.filter(p => new Date(p.fecha) >= inicioMes);
         
         let gananciaMes = 0;
-        pagosMes.forEach(pago => {
-            const prestamo = Storage.getPrestamo(pago.prestamoId);
+        for (const pago of pagosMes) {
+            const prestamo = await Storage.getPrestamo(pago.prestamoId);
             if (prestamo) {
                 const gananciaUnitaria = prestamo.ganancia / prestamo.cantidadCuotas;
                 gananciaMes += gananciaUnitaria;
             }
-        });
+        }
 
         const nombreMes = hoy.toLocaleDateString('es', { month: 'long', year: 'numeric' });
 
@@ -321,10 +321,10 @@ const ChatbotModule = {
         `;
     },
 
-    getCapitalDisponible() {
-        const prestamos = Storage.getPrestamos();
-        const pagos = Storage.getPagos();
-        const config = Storage.getConfig();
+    async getCapitalDisponible() {
+        const prestamos = await Storage.getPrestamos();
+        const pagos = await Storage.getPagos();
+        const config = await Storage.getConfig();
 
         const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
         const totalPrestado = prestamosActivos.reduce((sum, p) => sum + parseFloat(p.montoEntregado), 0);
@@ -338,8 +338,8 @@ const ChatbotModule = {
         `;
     },
 
-    getCapitalPrestado() {
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+    async getCapitalPrestado() {
+        const prestamos = (await Storage.getPrestamos()).filter(p => p.estado === 'activo');
         const totalPrestado = prestamos.reduce((sum, p) => sum + parseFloat(p.montoEntregado), 0);
         const totalCobrar = prestamos.reduce((sum, p) => {
             const restantes = p.cantidadCuotas - p.cuotasPagadas;
@@ -354,18 +354,18 @@ const ChatbotModule = {
         `;
     },
 
-    getClientesRiesgo() {
+    async getClientesRiesgo() {
         try {
-            const clientes = Storage.getClientes();
+            const clientes = await Storage.getClientes();
             const riesgosos = [];
 
-            clientes.forEach(cliente => {
+            for (const cliente of clientes) {
                 if (typeof ClientesModule === 'undefined' || !ClientesModule.calculateScore) {
-                    return;
+                    continue;
                 }
                 
-                const score = ClientesModule.calculateScore(cliente.id);
-                const prestamos = Storage.getPrestamosByCliente(cliente.id);
+                const score = await ClientesModule.calculateScore(cliente.id);
+                const prestamos = await Storage.getPrestamosByCliente(cliente.id);
                 const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
 
                 if (score < 60 && prestamosActivos.length > 0) {
@@ -375,7 +375,7 @@ const ChatbotModule = {
                         telefono: cliente.telefono
                     });
                 }
-            });
+            }
 
             if (riesgosos.length === 0) {
                 return '✅ Excelente! No tienes clientes de alto riesgo en este momento.';
@@ -400,25 +400,26 @@ const ChatbotModule = {
         }
     },
 
-    getMejoresClientes() {
+    async getMejoresClientes() {
         try {
-            const clientes = Storage.getClientes();
+            const clientes = await Storage.getClientes();
             const rankings = [];
 
-            clientes.forEach(cliente => {
-                const prestamos = Storage.getPrestamosByCliente(cliente.id);
-                const pagos = Storage.getPagos();
+            const pagos = await Storage.getPagos();
+            
+            for (const cliente of clientes) {
+                const prestamos = await Storage.getPrestamosByCliente(cliente.id);
                 
                 let gananciaGenerada = 0;
-                prestamos.forEach(prestamo => {
+                for (const prestamo of prestamos) {
                     const pagosPrestamo = pagos.filter(p => p.prestamoId === prestamo.id);
                     const totalPagado = pagosPrestamo.reduce((sum, p) => sum + parseFloat(p.monto), 0);
                     gananciaGenerada += (totalPagado - parseFloat(prestamo.montoEntregado));
-                });
+                }
 
                 if (gananciaGenerada > 0) {
                     const score = (typeof ClientesModule !== 'undefined' && ClientesModule.calculateScore) 
-                        ? ClientesModule.calculateScore(cliente.id) 
+                        ? await ClientesModule.calculateScore(cliente.id) 
                         : 100;
                     
                     rankings.push({
@@ -428,7 +429,7 @@ const ChatbotModule = {
                         prestamos: prestamos.length
                     });
                 }
-            });
+            }
 
             rankings.sort((a, b) => b.ganancia - a.ganancia);
             const top3 = rankings.slice(0, 3);
@@ -458,11 +459,11 @@ const ChatbotModule = {
         }
     },
 
-    getResumenGeneral() {
-        const clientes = Storage.getClientes();
-        const prestamos = Storage.getPrestamos();
-        const pagos = Storage.getPagos();
-        const config = Storage.getConfig();
+    async getResumenGeneral() {
+        const clientes = await Storage.getClientes();
+        const prestamos = await Storage.getPrestamos();
+        const pagos = await Storage.getPagos();
+        const config = await Storage.getConfig();
 
         const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
         const prestamosFinalizados = prestamos.filter(p => p.estado === 'finalizado');

@@ -13,29 +13,64 @@ const Storage = {
         CAPITAL: 'mindset_capital'
     },
 
+    // Indicador de encriptación
+    encryptionEnabled: true,
+
     // Inicializar storage
-    init() {
-        if (!this.get(this.KEYS.CLIENTES)) {
-            this.set(this.KEYS.CLIENTES, []);
+    async init() {
+        // Inicializar sistema de seguridad
+        if (typeof SecurityModule !== 'undefined') {
+            await SecurityModule.init();
         }
-        if (!this.get(this.KEYS.PRESTAMOS)) {
-            this.set(this.KEYS.PRESTAMOS, []);
+
+        if (!await this.get(this.KEYS.CLIENTES)) {
+            await this.set(this.KEYS.CLIENTES, []);
         }
-        if (!this.get(this.KEYS.PAGOS)) {
-            this.set(this.KEYS.PAGOS, []);
+        if (!await this.get(this.KEYS.PRESTAMOS)) {
+            await this.set(this.KEYS.PRESTAMOS, []);
         }
-        if (!this.get(this.KEYS.CONFIG)) {
-            this.set(this.KEYS.CONFIG, {
+        if (!await this.get(this.KEYS.PAGOS)) {
+            await this.set(this.KEYS.PAGOS, []);
+        }
+        if (!await this.get(this.KEYS.CONFIG)) {
+            await this.set(this.KEYS.CONFIG, {
                 capitalInicial: 0,
                 fechaInicio: new Date().toISOString()
             });
         }
     },
 
-    // Guardar datos
-    set(key, value) {
+    // Guardar datos (con encriptación)
+    async set(key, value) {
         try {
-            localStorage.setItem(key, JSON.stringify(value));
+            // Validar datos
+            if (this.encryptionEnabled && typeof SecurityModule !== 'undefined') {
+                if (!SecurityModule.validateData(value)) {
+                    console.error('Datos inválidos');
+                    return false;
+                }
+            }
+
+            let dataToStore;
+            
+            // Encriptar datos sensibles
+            if (this.encryptionEnabled && typeof SecurityModule !== 'undefined' && SecurityModule.masterKey) {
+                const encrypted = await SecurityModule.encrypt(value);
+                if (encrypted) {
+                    dataToStore = encrypted;
+                    // Marcar como encriptado
+                    localStorage.setItem(key + '_enc', 'true');
+                } else {
+                    // Fallback sin encriptación
+                    dataToStore = JSON.stringify(value);
+                    localStorage.removeItem(key + '_enc');
+                }
+            } else {
+                dataToStore = JSON.stringify(value);
+                localStorage.removeItem(key + '_enc');
+            }
+
+            localStorage.setItem(key, dataToStore);
             return true;
         } catch (error) {
             console.error('Error al guardar:', error);
@@ -43,11 +78,23 @@ const Storage = {
         }
     },
 
-    // Obtener datos
-    get(key) {
+    // Obtener datos (con desencriptación)
+    async get(key) {
         try {
             const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
+            if (!data) return null;
+
+            // Verificar si está encriptado
+            const isEncrypted = localStorage.getItem(key + '_enc') === 'true';
+
+            if (isEncrypted && typeof SecurityModule !== 'undefined' && SecurityModule.masterKey) {
+                // Desencriptar
+                const decrypted = await SecurityModule.decrypt(data);
+                return decrypted;
+            } else {
+                // Parsear normalmente
+                return JSON.parse(data);
+            }
         } catch (error) {
             console.error('Error al obtener:', error);
             return null;

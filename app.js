@@ -4,7 +4,7 @@
 // ============================================
 
 // Inicializar la aplicación
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Iniciando MindSet Capital...');
     
     // Verificar autenticación
@@ -48,19 +48,38 @@ function setupLogin() {
     const loginForm = document.getElementById('loginForm');
     const passwordInput = document.getElementById('loginPassword');
     
-    loginForm?.addEventListener('submit', (e) => {
+    loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const password = passwordInput.value;
         
-        if (password === '2026') {
-            localStorage.setItem('mindset_authenticated', 'true');
-            showMainApp();
-            passwordInput.value = '';
+        // Hash de la contraseña correcta (2026)
+        const correctPasswordHash = 'c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2'; // SHA-256 de "2026"
+        
+        if (typeof SecurityModule !== 'undefined') {
+            const inputHash = await SecurityModule.hashPassword(password);
+            
+            if (inputHash === correctPasswordHash) {
+                localStorage.setItem('mindset_authenticated', 'true');
+                await SecurityModule.init(password);
+                showMainApp();
+                passwordInput.value = '';
+            } else {
+                alert('❌ Contraseña incorrecta. Intenta de nuevo.');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
         } else {
-            alert('❌ Contraseña incorrecta. Intenta de nuevo.');
-            passwordInput.value = '';
-            passwordInput.focus();
+            // Fallback si SecurityModule no está disponible
+            if (password === '2026') {
+                localStorage.setItem('mindset_authenticated', 'true');
+                showMainApp();
+                passwordInput.value = '';
+            } else {
+                alert('❌ Contraseña incorrecta. Intenta de nuevo.');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
         }
     });
 }
@@ -70,10 +89,10 @@ function setupLogin() {
 // ============================================
 
 // Inicializar todos los módulos
-function initializeApp() {
+async function initializeApp() {
     try {
-        // Inicializar storage
-        Storage.init();
+        // Inicializar storage (ya incluye seguridad)
+        await Storage.init();
         
         // Inicializar sistema de backups
         if (typeof BackupSystem !== 'undefined') {
@@ -84,7 +103,7 @@ function initializeApp() {
         ClientesModule.init();
         PrestamosModule.init();
         PagosModule.init();
-        DashboardModule.init();
+        await DashboardModule.init();
         AnalyticsModule.init();
         SimuladorModule.init();
         ChatbotModule.init();
@@ -102,7 +121,7 @@ function setupNavigation() {
     const sections = document.querySelectorAll('.section');
 
     navButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const sectionId = btn.dataset.section;
             
             // Actualizar botones activos
@@ -114,7 +133,7 @@ function setupNavigation() {
             document.getElementById(sectionId)?.classList.add('active');
             
             // Actualizar módulos según la sección
-            updateSection(sectionId);
+            await updateSection(sectionId);
             
             // Cerrar menú móvil
             closeMobileMenu();
@@ -123,19 +142,19 @@ function setupNavigation() {
 }
 
 // Actualizar contenido de secciones
-function updateSection(sectionId) {
+async function updateSection(sectionId) {
     switch(sectionId) {
         case 'dashboard':
-            DashboardModule.init();
+            await DashboardModule.init();
             break;
         case 'clientes':
-            ClientesModule.renderClientes();
+            await ClientesModule.renderClientes();
             break;
         case 'prestamos':
-            PrestamosModule.renderPrestamos();
+            await PrestamosModule.renderPrestamos();
             break;
         case 'pagos':
-            PagosModule.renderPagos();
+            await PagosModule.renderPagos();
             break;
         case 'analytics':
             AnalyticsModule.init();
@@ -165,8 +184,8 @@ function closeMobileMenu() {
 }
 
 // Verificar si es la primera ejecución
-function checkFirstRun() {
-    const config = Storage.getConfig();
+async function checkFirstRun() {
+    const config = await Storage.getConfig();
     
     if (!config.capitalInicial || config.capitalInicial === 0) {
         showWelcomeModal();
@@ -203,7 +222,7 @@ function showWelcomeModal() {
 }
 
 // Guardar capital inicial
-function saveInitialCapital() {
+async function saveInitialCapital() {
     const input = document.getElementById('capitalInicialInput');
     const capital = parseFloat(input?.value) || 0;
     
@@ -212,13 +231,13 @@ function saveInitialCapital() {
         return;
     }
     
-    Storage.updateConfig({ capitalInicial: capital });
+    await Storage.updateConfig({ capitalInicial: capital });
     
     // Cerrar modal
     document.querySelector('.modal.active')?.remove();
     
     // Actualizar dashboard
-    DashboardModule.init();
+    await DashboardModule.init();
     
     // Mostrar notificación
     ClientesModule.showNotification('¡Configuración completada! Ya puedes comenzar a usar MindSet Capital.', 'success');
@@ -243,12 +262,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Detectar cuando la app se vuelve visible
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
     if (!document.hidden) {
         // Actualizar dashboard cuando vuelve a estar visible
         const dashboardSection = document.getElementById('dashboard');
         if (dashboardSection?.classList.contains('active')) {
-            DashboardModule.init();
+            await DashboardModule.init();
         }
     }
 });

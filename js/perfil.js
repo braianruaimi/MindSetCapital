@@ -58,7 +58,9 @@ const PerfilModule = (() => {
         document.getElementById('btnSavePersonal').addEventListener('click', savePersonalData);
 
         // Guardar capital
-        document.getElementById('btnSaveCapital').addEventListener('click', saveCapital);
+        document.getElementById('btnSaveCapital').addEventListener('click', async () => {
+            await saveCapital();
+        });
 
         // Agregar meta
         document.getElementById('btnAddGoal').addEventListener('click', addGoal);
@@ -131,7 +133,7 @@ const PerfilModule = (() => {
     /**
      * Guarda el capital actualizado
      */
-    function saveCapital() {
+    async function saveCapital() {
         const capitalInput = document.getElementById('editCapital');
         const newCapital = parseFloat(capitalInput.value);
 
@@ -144,9 +146,9 @@ const PerfilModule = (() => {
         saveProfile();
 
         // Actualizar en config global
-        const config = Storage.getConfig();
+        const config = await Storage.getConfig();
         config.capitalInicial = newCapital;
-        Storage.updateConfig(config);
+        await Storage.updateConfig(config);
 
         displayCapital();
         capitalInput.value = '';
@@ -154,7 +156,7 @@ const PerfilModule = (() => {
 
         // Actualizar dashboard si está visible
         if (typeof DashboardModule !== 'undefined') {
-            DashboardModule.init();
+            await DashboardModule.init();
         }
     }
 
@@ -262,8 +264,8 @@ const PerfilModule = (() => {
     /**
      * Muestra el capital
      */
-    function displayCapital() {
-        const config = Storage.getConfig();
+    async function displayCapital() {
+        const config = await Storage.getConfig();
         const capital = config.capitalInicial || profileData.capital;
         
         document.getElementById('capitalAmount').textContent = 
@@ -386,10 +388,10 @@ const PerfilModule = (() => {
     /**
      * Actualiza el estado del respaldo en la UI
      */
-    function updateBackupStatus() {
-        const clientes = Storage.getClientes();
-        const prestamos = Storage.getPrestamos();
-        const pagos = Storage.getPagos();
+    async function updateBackupStatus() {
+        const clientes = await Storage.getClientes();
+        const prestamos = await Storage.getPrestamos();
+        const pagos = await Storage.getPagos();
         const lastBackup = localStorage.getItem('mindset_last_backup');
 
         document.getElementById('statusClientes').textContent = clientes.length;

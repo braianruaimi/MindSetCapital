@@ -12,25 +12,25 @@ const PagosModule = {
 
     setupEventListeners() {
         // Formulario de pago
-        document.getElementById('formPago')?.addEventListener('submit', (e) => {
+        document.getElementById('formPago')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            this.savePago(e.target);
+            await this.savePago(e.target);
         });
 
         // Filtros
-        document.getElementById('filtroPagosCliente')?.addEventListener('change', () => {
-            this.renderPagos();
+        document.getElementById('filtroPagosCliente')?.addEventListener('change', async () => {
+            await this.renderPagos();
         });
 
-        document.getElementById('filtroPagosMes')?.addEventListener('change', () => {
-            this.renderPagos();
+        document.getElementById('filtroPagosMes')?.addEventListener('change', async () => {
+            await this.renderPagos();
         });
     },
 
-    loadFilters() {
+    async loadFilters() {
         const selectCliente = document.getElementById('filtroPagosCliente');
         if (selectCliente) {
-            const clientes = Storage.getClientes();
+            const clientes = await Storage.getClientes();
             selectCliente.innerHTML = '<option value="">Todos los clientes</option>' +
                 clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
         }
@@ -58,12 +58,12 @@ const PagosModule = {
         return meses;
     },
 
-    openModalPago(prestamoId) {
+    async openModalPago(prestamoId) {
         const modal = document.getElementById('modalPago');
         const form = document.getElementById('formPago');
         form.reset();
 
-        const prestamo = Storage.getPrestamo(prestamoId);
+        const prestamo = await Storage.getPrestamo(prestamoId);
         if (!prestamo) return;
 
         // Limpiar ID de edición
@@ -79,11 +79,11 @@ const PagosModule = {
         modal.classList.add('active');
     },
 
-    openEditPago(pagoId) {
-        const pago = Storage.getPago(pagoId);
+    async openEditPago(pagoId) {
+        const pago = await Storage.getPago(pagoId);
         if (!pago) return;
 
-        const prestamo = Storage.getPrestamo(pago.prestamoId);
+        const prestamo = await Storage.getPrestamo(pago.prestamoId);
         if (!prestamo) return;
 
         const modal = document.getElementById('modalPago');
@@ -103,20 +103,20 @@ const PagosModule = {
         modal.classList.add('active');
     },
 
-    deletePago(pagoId) {
+    async deletePago(pagoId) {
         if (!confirm('¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.')) {
             return;
         }
 
-        const pago = Storage.getPago(pagoId);
+        const pago = await Storage.getPago(pagoId);
         if (!pago) return;
 
-        Storage.deletePago(pagoId);
+        await Storage.deletePago(pagoId);
         
         ClientesModule.showNotification('Pago eliminado exitosamente', 'success');
         
         // Actualizar vistas
-        this.renderPagos();
+        await this.renderPagos();
         if (typeof PrestamosModule !== 'undefined') {
             PrestamosModule.renderPrestamos();
         }
@@ -125,7 +125,7 @@ const PagosModule = {
         }
     },
 
-    savePago(form) {
+    async savePago(form) {
         const formData = new FormData(form);
         
         const pagoId = formData.get('pagoId');
@@ -138,18 +138,18 @@ const PagosModule = {
 
         if (pagoId) {
             // Editar pago existente
-            Storage.updatePago(pagoId, pago);
+            await Storage.updatePago(pagoId, pago);
             ClientesModule.showNotification('Pago actualizado exitosamente', 'success');
         } else {
             // Crear nuevo pago
-            Storage.addPago(pago);
+            await Storage.addPago(pago);
             ClientesModule.showNotification('Pago registrado exitosamente', 'success');
         }
         
         ClientesModule.closeModals();
         
         // Actualizar vistas
-        this.renderPagos();
+        await this.renderPagos();
         if (typeof PrestamosModule !== 'undefined') {
             PrestamosModule.renderPrestamos();
         }
@@ -158,21 +158,25 @@ const PagosModule = {
         }
     },
 
-    renderPagos() {
+    async renderPagos() {
         const tbody = document.querySelector('#tablaPagos tbody');
         if (!tbody) return;
 
-        let pagos = Storage.getPagos();
+        let pagos = await Storage.getPagos();
         
         // Aplicar filtros
         const filtroCliente = document.getElementById('filtroPagosCliente')?.value;
         const filtroMes = document.getElementById('filtroPagosMes')?.value;
 
         if (filtroCliente) {
-            pagos = pagos.filter(pago => {
-                const prestamo = Storage.getPrestamo(pago.prestamoId);
-                return prestamo && prestamo.clienteId === filtroCliente;
-            });
+            const filteredPagos = [];
+            for (const pago of pagos) {
+                const prestamo = await Storage.getPrestamo(pago.prestamoId);
+                if (prestamo && prestamo.clienteId === filtroCliente) {
+                    filteredPagos.push(pago);
+                }
+            }
+            pagos = filteredPagos;
         }
 
         if (filtroMes) {
@@ -190,11 +194,12 @@ const PagosModule = {
             return;
         }
 
-        tbody.innerHTML = pagos.map(pago => {
-            const prestamo = Storage.getPrestamo(pago.prestamoId);
-            const cliente = prestamo ? Storage.getCliente(prestamo.clienteId) : null;
+        const pagosHTML = [];
+        for (const pago of pagos) {
+            const prestamo = await Storage.getPrestamo(pago.prestamoId);
+            const cliente = prestamo ? await Storage.getCliente(prestamo.clienteId) : null;
 
-            return `
+            pagosHTML.push(`
                 <tr>
                     <td>${new Date(pago.fecha).toLocaleDateString()}</td>
                     <td>${cliente?.nombre || 'Desconocido'}</td>
@@ -210,7 +215,8 @@ const PagosModule = {
                         </button>
                     </td>
                 </tr>
-            `;
-        }).join('');
+            `);
+        }
+        tbody.innerHTML = pagosHTML.join('');
     }
 };
