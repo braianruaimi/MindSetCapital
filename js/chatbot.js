@@ -7,27 +7,53 @@ const ChatbotModule = {
     init() {
         this.setupEventListeners();
         this.showWelcomeMessage();
+        console.log('✅ Chatbot inicializado');
     },
 
     setupEventListeners() {
         // Enviar mensaje
-        document.getElementById('btnSendChat')?.addEventListener('click', () => {
-            this.sendMessage();
-        });
+        const btnSend = document.getElementById('btnSendChat');
+        if (btnSend) {
+            btnSend.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Click en botón Enviar');
+                this.sendMessage();
+            });
+        }
 
         // Enter para enviar
-        document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.sendMessage();
-            }
-        });
+        const inputChat = document.getElementById('chatInput');
+        if (inputChat) {
+            inputChat.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    console.log('Enter presionado en chat');
+                    this.sendMessage();
+                }
+            });
+        }
 
-        // Sugerencias
-        document.querySelectorAll('.suggestion-btn').forEach(btn => {
+        // Sugerencias - Configurar dinámicamente para asegurar que funcionen
+        this.setupSuggestions();
+        
+        console.log('✅ Event listeners del chatbot configurados');
+    },
+
+    setupSuggestions() {
+        const suggestionButtons = document.querySelectorAll('.suggestion-btn');
+        console.log(`Configurando ${suggestionButtons.length} botones de sugerencia`);
+        
+        suggestionButtons.forEach((btn, index) => {
             btn.addEventListener('click', (e) => {
-                const query = e.target.textContent;
-                document.getElementById('chatInput').value = query;
-                this.sendMessage();
+                e.preventDefault();
+                const query = e.target.textContent.trim();
+                console.log(`Click en sugerencia ${index + 1}: "${query}"`);
+                
+                const inputChat = document.getElementById('chatInput');
+                if (inputChat) {
+                    inputChat.value = query;
+                    this.sendMessage();
+                }
             });
         });
     },
@@ -149,87 +175,106 @@ const ChatbotModule = {
     },
 
     getPrestamosVencenHoy() {
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+        try {
+            const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
 
-        const vencenHoy = [];
-        const vencidos = [];
+            const vencenHoy = [];
+            const vencidos = [];
 
-        prestamos.forEach(prestamo => {
-            const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
-            proximoPago.setHours(0, 0, 0, 0);
-            const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
-
-            const cliente = Storage.getCliente(prestamo.clienteId);
-            const info = {
-                cliente: cliente?.nombre || 'Desconocido',
-                monto: prestamo.valorCuota,
-                dias: dias
-            };
-
-            if (dias === 0) {
-                vencenHoy.push(info);
-            } else if (dias < 0) {
-                vencidos.push(info);
-            }
-        });
-
-        let mensaje = '<strong>📅 Cobros de Hoy:</strong><br><br>';
-
-        if (vencidos.length > 0) {
-            mensaje += `🚨 <strong>Pagos Vencidos (${vencidos.length}):</strong><br>`;
-            vencidos.slice(0, 5).forEach(v => {
-                mensaje += `• ${v.cliente}: $${v.monto.toLocaleString()} (${Math.abs(v.dias)} días atrasado)<br>`;
-            });
-            mensaje += '<br>';
-        }
-
-        if (vencenHoy.length > 0) {
-            mensaje += `⏰ <strong>Vencen Hoy (${vencenHoy.length}):</strong><br>`;
-            vencenHoy.forEach(v => {
-                mensaje += `• ${v.cliente}: $${v.monto.toLocaleString()}<br>`;
-            });
-        } else if (vencidos.length === 0) {
-            mensaje += '✅ No tienes cobros para hoy ni pagos vencidos.';
-        }
-
-        return mensaje;
-    },
-
-    getClientesDebenSemana() {
-        const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
-        const hoy = new Date();
-        const proximaSemana = new Date();
-        proximaSemana.setDate(hoy.getDate() + 7);
-
-        const cobrosProximos = [];
-
-        prestamos.forEach(prestamo => {
-            const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
-            
-            if (proximoPago <= proximaSemana && proximoPago >= hoy) {
-                const cliente = Storage.getCliente(prestamo.clienteId);
-                const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
+            prestamos.forEach(prestamo => {
+                // Verificar que PrestamosModule y su método existan
+                if (typeof PrestamosModule === 'undefined' || !PrestamosModule.calculateProximoPago) {
+                    return;
+                }
                 
-                cobrosProximos.push({
+                const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
+                proximoPago.setHours(0, 0, 0, 0);
+                const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
+
+                const cliente = Storage.getCliente(prestamo.clienteId);
+                const info = {
                     cliente: cliente?.nombre || 'Desconocido',
                     monto: prestamo.valorCuota,
                     dias: dias
+                };
+
+                if (dias === 0) {
+                    vencenHoy.push(info);
+                } else if (dias < 0) {
+                    vencidos.push(info);
+                }
+            });
+
+            let mensaje = '<strong>📅 Cobros de Hoy:</strong><br><br>';
+
+            if (vencidos.length > 0) {
+                mensaje += `🚨 <strong>Pagos Vencidos (${vencidos.length}):</strong><br>`;
+                vencidos.slice(0, 5).forEach(v => {
+                    mensaje += `• ${v.cliente}: $${v.monto.toLocaleString()} (${Math.abs(v.dias)} días atrasado)<br>`;
                 });
+                mensaje += '<br>';
             }
-        });
 
-        if (cobrosProximos.length === 0) {
-            return '✅ No tienes cobros programados para esta semana.';
+            if (vencenHoy.length > 0) {
+                mensaje += `⏰ <strong>Vencen Hoy (${vencenHoy.length}):</strong><br>`;
+                vencenHoy.forEach(v => {
+                    mensaje += `• ${v.cliente}: $${v.monto.toLocaleString()}<br>`;
+                });
+            } else if (vencidos.length === 0) {
+                mensaje += '✅ No tienes cobros para hoy ni pagos vencidos.';
+            }
+
+            return mensaje;
+        } catch (error) {
+            console.error('Error en getPrestamosVencenHoy:', error);
+            return '❌ Error al obtener información de préstamos. Intenta más tarde.';
         }
+    },
 
-        let mensaje = `<strong>📅 Cobros próxima semana (${cobrosProximos.length}):</strong><br><br>`;
-        cobrosProximos.forEach(c => {
-            mensaje += `• ${c.cliente}: $${c.monto.toLocaleString()} (en ${c.dias} día${c.dias !== 1 ? 's' : ''})<br>`;
-        });
+    getClientesDebenSemana() {
+        try {
+            const prestamos = Storage.getPrestamos().filter(p => p.estado === 'activo');
+            const hoy = new Date();
+            const proximaSemana = new Date();
+            proximaSemana.setDate(hoy.getDate() + 7);
 
-        return mensaje;
+            const cobrosProximos = [];
+
+            prestamos.forEach(prestamo => {
+                if (typeof PrestamosModule === 'undefined' || !PrestamosModule.calculateProximoPago) {
+                    return;
+                }
+                
+                const proximoPago = PrestamosModule.calculateProximoPago(prestamo);
+                
+                if (proximoPago <= proximaSemana && proximoPago >= hoy) {
+                    const cliente = Storage.getCliente(prestamo.clienteId);
+                    const dias = Math.ceil((proximoPago - hoy) / (1000 * 60 * 60 * 24));
+                    
+                    cobrosProximos.push({
+                        cliente: cliente?.nombre || 'Desconocido',
+                        monto: prestamo.valorCuota,
+                        dias: dias
+                    });
+                }
+            });
+
+            if (cobrosProximos.length === 0) {
+                return '✅ No tienes cobros programados para esta semana.';
+            }
+
+            let mensaje = `<strong>📅 Cobros próxima semana (${cobrosProximos.length}):</strong><br><br>`;
+            cobrosProximos.forEach(c => {
+                mensaje += `• ${c.cliente}: $${c.monto.toLocaleString()} (en ${c.dias} día${c.dias !== 1 ? 's' : ''})<br>`;
+            });
+
+            return mensaje;
+        } catch (error) {
+            console.error('Error en getClientesDebenSemana:', error);
+            return '❌ Error al obtener cobros de la semana.';
+        }
     },
 
     getGananciaTotal() {
@@ -310,84 +355,107 @@ const ChatbotModule = {
     },
 
     getClientesRiesgo() {
-        const clientes = Storage.getClientes();
-        const riesgosos = [];
+        try {
+            const clientes = Storage.getClientes();
+            const riesgosos = [];
 
-        clientes.forEach(cliente => {
-            const score = ClientesModule.calculateScore(cliente.id);
-            const prestamos = Storage.getPrestamosByCliente(cliente.id);
-            const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
+            clientes.forEach(cliente => {
+                if (typeof ClientesModule === 'undefined' || !ClientesModule.calculateScore) {
+                    return;
+                }
+                
+                const score = ClientesModule.calculateScore(cliente.id);
+                const prestamos = Storage.getPrestamosByCliente(cliente.id);
+                const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
 
-            if (score < 60 && prestamosActivos.length > 0) {
-                riesgosos.push({
-                    nombre: cliente.nombre,
-                    score: score,
-                    telefono: cliente.telefono
-                });
+                if (score < 60 && prestamosActivos.length > 0) {
+                    riesgosos.push({
+                        nombre: cliente.nombre,
+                        score: score,
+                        telefono: cliente.telefono
+                    });
+                }
+            });
+
+            if (riesgosos.length === 0) {
+                return '✅ Excelente! No tienes clientes de alto riesgo en este momento.';
             }
-        });
 
-        if (riesgosos.length === 0) {
-            return '✅ Excelente! No tienes clientes de alto riesgo en este momento.';
+            let mensaje = `<strong>⚠️ Clientes de Riesgo (${riesgosos.length}):</strong><br><br>`;
+            mensaje += 'Estos clientes tienen pagos atrasados o un historial problemático:<br><br>';
+            
+            riesgosos.forEach(c => {
+                const scoreLabel = ClientesModule.getScoreLabel ? ClientesModule.getScoreLabel(c.score) : 'Riesgo';
+                mensaje += `• <strong>${c.nombre}</strong><br>`;
+                mensaje += `  Score: ${c.score} - ${scoreLabel}<br>`;
+                mensaje += `  Tel: ${c.telefono}<br><br>`;
+            });
+
+            mensaje += '<strong>Recomendación:</strong> Realiza seguimiento cercano a estos clientes.';
+
+            return mensaje;
+        } catch (error) {
+            console.error('Error en getClientesRiesgo:', error);
+            return '❌ Error al obtener clientes de riesgo.';
         }
-
-        let mensaje = `<strong>⚠️ Clientes de Riesgo (${riesgosos.length}):</strong><br><br>`;
-        mensaje += 'Estos clientes tienen pagos atrasados o un historial problemático:<br><br>';
-        
-        riesgosos.forEach(c => {
-            mensaje += `• <strong>${c.nombre}</strong><br>`;
-            mensaje += `  Score: ${c.score} - ${ClientesModule.getScoreLabel(c.score)}<br>`;
-            mensaje += `  Tel: ${c.telefono}<br><br>`;
-        });
-
-        mensaje += '<strong>Recomendación:</strong> Realiza seguimiento cercano a estos clientes.';
-
-        return mensaje;
     },
 
     getMejoresClientes() {
-        const clientes = Storage.getClientes();
-        const rankings = [];
+        try {
+            const clientes = Storage.getClientes();
+            const rankings = [];
 
-        clientes.forEach(cliente => {
-            const prestamos = Storage.getPrestamosByCliente(cliente.id);
-            const pagos = Storage.getPagos();
-            
-            let gananciaGenerada = 0;
-            prestamos.forEach(prestamo => {
-                const pagosPrestamo = pagos.filter(p => p.prestamoId === prestamo.id);
-                const totalPagado = pagosPrestamo.reduce((sum, p) => sum + parseFloat(p.monto), 0);
-                gananciaGenerada += (totalPagado - parseFloat(prestamo.montoEntregado));
+            clientes.forEach(cliente => {
+                const prestamos = Storage.getPrestamosByCliente(cliente.id);
+                const pagos = Storage.getPagos();
+                
+                let gananciaGenerada = 0;
+                prestamos.forEach(prestamo => {
+                    const pagosPrestamo = pagos.filter(p => p.prestamoId === prestamo.id);
+                    const totalPagado = pagosPrestamo.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+                    gananciaGenerada += (totalPagado - parseFloat(prestamo.montoEntregado));
+                });
+
+                if (gananciaGenerada > 0) {
+                    const score = (typeof ClientesModule !== 'undefined' && ClientesModule.calculateScore) 
+                        ? ClientesModule.calculateScore(cliente.id) 
+                        : 100;
+                    
+                    rankings.push({
+                        nombre: cliente.nombre,
+                        ganancia: gananciaGenerada,
+                        score: score,
+                        prestamos: prestamos.length
+                    });
+                }
             });
 
-            if (gananciaGenerada > 0) {
-                rankings.push({
-                    nombre: cliente.nombre,
-                    ganancia: gananciaGenerada,
-                    score: ClientesModule.calculateScore(cliente.id),
-                    prestamos: prestamos.length
-                });
+            rankings.sort((a, b) => b.ganancia - a.ganancia);
+            const top3 = rankings.slice(0, 3);
+
+            if (top3.length === 0) {
+                return 'Aún no tienes suficientes datos para mostrar los mejores clientes.';
             }
-        });
 
-        rankings.sort((a, b) => b.ganancia - a.ganancia);
-        const top3 = rankings.slice(0, 3);
+            let mensaje = '<strong>🏆 Top 3 Mejores Clientes:</strong><br><br>';
+            
+            top3.forEach((c, i) => {
+                const medalla = ['🥇', '🥈', '🥉'][i];
+                const scoreLabel = (typeof ClientesModule !== 'undefined' && ClientesModule.getScoreLabel) 
+                    ? ClientesModule.getScoreLabel(c.score) 
+                    : 'Bueno';
+                    
+                mensaje += `${medalla} <strong>${c.nombre}</strong><br>`;
+                mensaje += `   Ganancia generada: $${c.ganancia.toLocaleString()}<br>`;
+                mensaje += `   Score: ${c.score} - ${scoreLabel}<br>`;
+                mensaje += `   Préstamos: ${c.prestamos}<br><br>`;
+            });
 
-        if (top3.length === 0) {
-            return 'Aún no tienes suficientes datos para mostrar los mejores clientes.';
+            return mensaje;
+        } catch (error) {
+            console.error('Error en getMejoresClientes:', error);
+            return '❌ Error al obtener mejores clientes.';
         }
-
-        let mensaje = '<strong>🏆 Top 3 Mejores Clientes:</strong><br><br>';
-        
-        top3.forEach((c, i) => {
-            const medalla = ['🥇', '🥈', '🥉'][i];
-            mensaje += `${medalla} <strong>${c.nombre}</strong><br>`;
-            mensaje += `   Ganancia generada: $${c.ganancia.toLocaleString()}<br>`;
-            mensaje += `   Score: ${c.score} - ${ClientesModule.getScoreLabel(c.score)}<br>`;
-            mensaje += `   Préstamos: ${c.prestamos}<br><br>`;
-        });
-
-        return mensaje;
     },
 
     getResumenGeneral() {
@@ -430,57 +498,66 @@ const ChatbotModule = {
     },
 
     getRecomendaciones() {
-        const prestamos = Storage.getPrestamos();
-        const clientes = Storage.getClientes();
-        const config = Storage.getConfig();
-        const pagos = Storage.getPagos();
+        try {
+            const prestamos = Storage.getPrestamos();
+            const clientes = Storage.getClientes();
+            const config = Storage.getConfig();
+            const pagos = Storage.getPagos();
 
-        const recomendaciones = [];
+            const recomendaciones = [];
 
-        // Analizar clientes de riesgo
-        const clientesRiesgo = clientes.filter(c => ClientesModule.calculateScore(c.id) < 60);
-        if (clientesRiesgo.length > 0) {
-            recomendaciones.push(`⚠️ Tienes ${clientesRiesgo.length} cliente(s) de riesgo. Considera hacer seguimiento más frecuente.`);
+            // Analizar clientes de riesgo
+            if (typeof ClientesModule !== 'undefined' && ClientesModule.calculateScore) {
+                const clientesRiesgo = clientes.filter(c => ClientesModule.calculateScore(c.id) < 60);
+                if (clientesRiesgo.length > 0) {
+                    recomendaciones.push(`⚠️ Tienes ${clientesRiesgo.length} cliente(s) de riesgo. Considera hacer seguimiento más frecuente.`);
+                }
+            }
+
+            // Analizar capital ocioso
+            const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
+            const totalPrestado = prestamosActivos.reduce((sum, p) => sum + parseFloat(p.montoEntregado), 0);
+            const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
+            const capitalDisponible = (config.capitalInicial || 0) + totalPagado - totalPrestado;
+
+            if (capitalDisponible > (config.capitalInicial || 0) * 0.3) {
+                recomendaciones.push(`💡 Tienes mucho capital disponible ($${capitalDisponible.toLocaleString()}). Considera hacer más préstamos para aumentar tu rentabilidad.`);
+            }
+
+            // Analizar diversificación
+            if (clientes.length < 5 && prestamosActivos.length > 10) {
+                recomendaciones.push('📊 Considera diversificar tu cartera con más clientes para reducir el riesgo.');
+            }
+
+            // Analizar pagos atrasados
+            if (typeof PrestamosModule !== 'undefined' && PrestamosModule.calculateProximoPago) {
+                const hoy = new Date();
+                let pagosAtrasados = 0;
+                prestamosActivos.forEach(p => {
+                    const proximoPago = PrestamosModule.calculateProximoPago(p);
+                    if (proximoPago < hoy) pagosAtrasados++;
+                });
+
+                if (pagosAtrasados > prestamosActivos.length * 0.2) {
+                    recomendaciones.push('🚨 Más del 20% de tus préstamos tienen pagos atrasados. Aumenta la frecuencia de cobro.');
+                }
+            }
+
+            // Si todo va bien
+            if (recomendaciones.length === 0) {
+                recomendaciones.push('✅ ¡Excelente gestión! Tu negocio va por buen camino.');
+                recomendaciones.push('💡 Considera reinvertir tus ganancias para acelerar el crecimiento.');
+                recomendaciones.push('📈 Usa el simulador para proyectar tu crecimiento a 12 meses.');
+            }
+
+            let mensaje = '<strong>💼 Recomendaciones Personalizadas:</strong><br><br>';
+            mensaje += recomendaciones.join('<br><br>');
+
+            return mensaje;
+        } catch (error) {
+            console.error('Error en getRecomendaciones:', error);
+            return '❌ Error al generar recomendaciones.';
         }
-
-        // Analizar capital ocioso
-        const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
-        const totalPrestado = prestamosActivos.reduce((sum, p) => sum + parseFloat(p.montoEntregado), 0);
-        const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.monto), 0);
-        const capitalDisponible = (config.capitalInicial || 0) + totalPagado - totalPrestado;
-
-        if (capitalDisponible > (config.capitalInicial || 0) * 0.3) {
-            recomendaciones.push(`💡 Tienes mucho capital disponible ($${capitalDisponible.toLocaleString()}). Considera hacer más préstamos para aumentar tu rentabilidad.`);
-        }
-
-        // Analizar diversificación
-        if (clientes.length < 5 && prestamosActivos.length > 10) {
-            recomendaciones.push('📊 Considera diversificar tu cartera con más clientes para reducir el riesgo.');
-        }
-
-        // Analizar pagos atrasados
-        const hoy = new Date();
-        let pagosAtrasados = 0;
-        prestamosActivos.forEach(p => {
-            const proximoPago = PrestamosModule.calculateProximoPago(p);
-            if (proximoPago < hoy) pagosAtrasados++;
-        });
-
-        if (pagosAtrasados > prestamosActivos.length * 0.2) {
-            recomendaciones.push('🚨 Más del 20% de tus préstamos tienen pagos atrasados. Aumenta la frecuencia de cobro.');
-        }
-
-        // Si todo va bien
-        if (recomendaciones.length === 0) {
-            recomendaciones.push('✅ ¡Excelente gestión! Tu negocio va por buen camino.');
-            recomendaciones.push('💡 Considera reinvertir tus ganancias para acelerar el crecimiento.');
-            recomendaciones.push('📈 Usa el simulador para proyectar tu crecimiento a 12 meses.');
-        }
-
-        let mensaje = '<strong>💼 Recomendaciones Personalizadas:</strong><br><br>';
-        mensaje += recomendaciones.join('<br><br>');
-
-        return mensaje;
     },
 
     getCantidadClientes() {

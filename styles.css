@@ -1511,6 +1511,38 @@ tbody tr:hover {
         flex-shrink: 0;
         min-width: 100px;
     }
+
+    /* Chatbot móvil */
+    .chatbot-container {
+        padding: 0.75rem;
+    }
+
+    .chat-messages {
+        height: 40vh;
+        max-height: 400px;
+    }
+
+    .chat-input {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .chat-input input {
+        width: 100%;
+    }
+
+    .chat-input button {
+        width: 100%;
+        padding: 0.75rem;
+    }
+
+    .suggestion-btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.75rem;
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: calc(50% - 0.25rem);
+        text-align: center;
+    }
 }
 
 /* Tabletas y móviles grandes */
@@ -1540,6 +1572,21 @@ tbody tr:hover {
 
     .client-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Chatbot tableta */
+    .chat-messages {
+        height: 50vh;
+    }
+
+    .chat-suggestions {
+        gap: 0.5rem;
+    }
+
+    .suggestion-btn {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 140px;
+        text-align: center;
     }
 }
 
