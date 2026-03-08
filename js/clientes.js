@@ -142,10 +142,13 @@ const ClientesModule = {
                     <td>$${totalPrestado.toLocaleString()}</td>
                     <td>
                         <button class="btn-small btn-primary" onclick="ClientesModule.viewProfile('${cliente.id}')">
-                            Ver Perfil
+                            👁️ Ver Perfil
                         </button>
                         <button class="btn-small btn-secondary" onclick="ClientesModule.openModal('${cliente.id}')">
-                            Editar
+                            ✏️ Editar
+                        </button>
+                        <button class="btn-small btn-danger" onclick="ClientesModule.deleteCliente('${cliente.id}')">
+                            🗑️ Eliminar
                         </button>
                     </td>
                 </tr>
@@ -337,6 +340,44 @@ const ClientesModule = {
                 </tbody>
             </table>
         `;
+    },
+
+    async deleteCliente(clienteId) {
+        const cliente = await Storage.getCliente(clienteId);
+        if (!cliente) {
+            this.showNotification('Cliente no encontrado', 'error');
+            return;
+        }
+
+        // Verificar si tiene préstamos activos
+        const prestamos = await Storage.getPrestamosByCliente(clienteId);
+        const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
+        
+        if (prestamosActivos.length > 0) {
+            this.showNotification(
+                `No se puede eliminar. El cliente tiene ${prestamosActivos.length} préstamo(s) activo(s).`,
+                'error'
+            );
+            return;
+        }
+
+        if (!confirm(`¿Estás seguro de eliminar al cliente "${cliente.nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            await Storage.deleteCliente(clienteId);
+            this.showNotification('Cliente eliminado correctamente', 'success');
+            await this.renderClientes();
+            
+            // Actualizar dashboard
+            if (typeof DashboardModule !== 'undefined') {
+                await DashboardModule.init();
+            }
+        } catch (error) {
+            console.error('Error al eliminar cliente:', error);
+            this.showNotification('Error al eliminar el cliente', 'error');
+        }
     },
 
     showNotification(message, type = 'info') {

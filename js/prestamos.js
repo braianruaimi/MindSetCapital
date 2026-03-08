@@ -350,6 +350,9 @@ const PrestamosModule = {
                         <button class="btn-secondary btn-small" onclick="PrestamosModule.viewDetails('${prestamo.id}')">
                             📊 Ver Detalle
                         </button>
+                        <button class="btn-danger btn-small" onclick="PrestamosModule.deletePrestamo('${prestamo.id}')">
+                            🗑️ Eliminar
+                        </button>
                     </div>
                 </div>
             `);
@@ -538,6 +541,63 @@ const PrestamosModule = {
      */
     async editPrestamo(prestamoId) {
         await this.openModal(prestamoId);
+    },
+
+    /**
+     * Eliminar préstamo
+     */
+    async deletePrestamo(prestamoId) {
+        const prestamo = await Storage.getPrestamo(prestamoId);
+        if (!prestamo) {
+            this.showNotification('Préstamo no encontrado', 'error');
+            return;
+        }
+
+        const cliente = await Storage.getCliente(prestamo.clienteId);
+        const clienteNombre = cliente ? cliente.nombre : 'Cliente desconocido';
+
+        // Verificar si tiene pagos registrados
+        const pagos = await Storage.getPagosByPrestamo(prestamoId);
+        
+        let mensaje = `¿Estás seguro de eliminar este préstamo?\n\n`;
+        mensaje += `Cliente: ${clienteNombre}\n`;
+        mensaje += `Monto: $${parseFloat(prestamo.montoEntregado).toLocaleString()}\n`;
+        mensaje += `Estado: ${prestamo.estado}\n`;
+        
+        if (pagos.length > 0) {
+            mensaje += `\n⚠️ Este préstamo tiene ${pagos.length} pago(s) registrado(s).\n`;
+            mensaje += `Todos los pagos también serán eliminados.\n`;
+        }
+        
+        mensaje += `\nEsta acción no se puede deshacer.`;
+
+        if (!confirm(mensaje)) {
+            return;
+        }
+
+        try {
+            // Eliminar todos los pagos asociados
+            for (const pago of pagos) {
+                await Storage.deletePago(pago.id);
+            }
+            
+            // Eliminar el préstamo
+            await Storage.deletePrestamo(prestamoId);
+            
+            this.showNotification('Préstamo eliminado correctamente', 'success');
+            await this.renderPrestamos();
+            
+            // Actualizar otras vistas
+            if (typeof DashboardModule !== 'undefined') {
+                await DashboardModule.init();
+            }
+            if (typeof ClientesModule !== 'undefined') {
+                await ClientesModule.renderClientes();
+            }
+        } catch (error) {
+            console.error('Error al eliminar préstamo:', error);
+            this.showNotification('Error al eliminar el préstamo', 'error');
+        }
     },
 
     /**
