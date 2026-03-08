@@ -4,8 +4,13 @@
 
 const ChatbotModule = {
 
+    listenersInitialized: false,
+
     init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         this.showWelcomeMessage();
         console.log('✅ Chatbot inicializado');
     },

@@ -5,6 +5,7 @@
 const DashboardModule = {
 
     charts: {},
+    listenersInitialized: false,
 
     init() {
         this.calculateMetrics();
@@ -13,10 +14,13 @@ const DashboardModule = {
         this.showCobrosHoy();
         this.renderCharts();
         
-        document.getElementById('refreshDashboard')?.addEventListener('click', async () => {
-            await this.init();
-            ClientesModule.showNotification('Dashboard actualizado', 'info');
-        });
+        if (!this.listenersInitialized) {
+            document.getElementById('refreshDashboard')?.addEventListener('click', async () => {
+                await this.init();
+                ClientesModule.showNotification('Dashboard actualizado', 'info');
+            });
+            this.listenersInitialized = true;
+        }
     },
 
     async showAlertasCobros() {

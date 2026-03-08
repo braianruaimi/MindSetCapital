@@ -5,9 +5,13 @@
 const SimuladorModule = {
 
     chart: null,
+    listenersInitialized: false,
 
     async init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         await this.loadDefaultValues();
     },
 

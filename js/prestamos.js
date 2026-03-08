@@ -5,9 +5,13 @@
 const PrestamosModule = {
 
     currentFilter: 'activos',
+    listenersInitialized: false,
 
     async init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         await this.renderPrestamos();
         await this.loadClientesSelect();
     },

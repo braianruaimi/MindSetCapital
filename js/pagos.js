@@ -4,8 +4,13 @@
 
 const PagosModule = {
 
+    listenersInitialized: false,
+
     async init() {
-        this.setupEventListeners();
+        if (!this.listenersInitialized) {
+            this.setupEventListeners();
+            this.listenersInitialized = true;
+        }
         await this.renderPagos();
         await this.loadFilters();
     },
