@@ -125,42 +125,42 @@ const Storage = {
     // CLIENTES
     // ============================================
 
-    getClientes() {
-        return this.get(this.KEYS.CLIENTES) || [];
+    async getClientes() {
+        return await this.get(this.KEYS.CLIENTES) || [];
     },
 
-    getCliente(id) {
-        const clientes = this.getClientes();
+    async getCliente(id) {
+        const clientes = await this.getClientes();
         return clientes.find(c => c.id === id);
     },
 
-    addCliente(cliente) {
-        const clientes = this.getClientes();
+    async addCliente(cliente) {
+        const clientes = await this.getClientes();
         cliente.id = Date.now().toString();
         cliente.fechaRegistro = new Date().toISOString();
         cliente.score = 100; // Score inicial
         clientes.push(cliente);
-        this.set(this.KEYS.CLIENTES, clientes);
+        await this.set(this.KEYS.CLIENTES, clientes);
         this.triggerAutoBackup();
         return cliente;
     },
 
-    updateCliente(id, data) {
-        const clientes = this.getClientes();
+    async updateCliente(id, data) {
+        const clientes = await this.getClientes();
         const index = clientes.findIndex(c => c.id === id);
         if (index !== -1) {
             clientes[index] = { ...clientes[index], ...data };
-            this.set(this.KEYS.CLIENTES, clientes);
+            await this.set(this.KEYS.CLIENTES, clientes);
             this.triggerAutoBackup();
             return true;
         }
         return false;
     },
 
-    deleteCliente(id) {
-        const clientes = this.getClientes();
+    async deleteCliente(id) {
+        const clientes = await this.getClientes();
         const filtered = clientes.filter(c => c.id !== id);
-        this.set(this.KEYS.CLIENTES, filtered);
+        await this.set(this.KEYS.CLIENTES, filtered);
         this.triggerAutoBackup();
         return true;
     },
@@ -169,48 +169,48 @@ const Storage = {
     // PRÉSTAMOS
     // ============================================
 
-    getPrestamos() {
-        return this.get(this.KEYS.PRESTAMOS) || [];
+    async getPrestamos() {
+        return await this.get(this.KEYS.PRESTAMOS) || [];
     },
 
-    getPrestamo(id) {
-        const prestamos = this.getPrestamos();
+    async getPrestamo(id) {
+        const prestamos = await this.getPrestamos();
         return prestamos.find(p => p.id === id);
     },
 
-    getPrestamosByCliente(clienteId) {
-        const prestamos = this.getPrestamos();
+    async getPrestamosByCliente(clienteId) {
+        const prestamos = await this.getPrestamos();
         return prestamos.filter(p => p.clienteId === clienteId);
     },
 
-    addPrestamo(prestamo) {
-        const prestamos = this.getPrestamos();
+    async addPrestamo(prestamo) {
+        const prestamos = await this.getPrestamos();
         prestamo.id = Date.now().toString();
         prestamo.fechaCreacion = new Date().toISOString();
         prestamo.estado = 'activo';
         prestamo.cuotasPagadas = 0;
         prestamos.push(prestamo);
-        this.set(this.KEYS.PRESTAMOS, prestamos);
+        await this.set(this.KEYS.PRESTAMOS, prestamos);
         this.triggerAutoBackup();
         return prestamo;
     },
 
-    updatePrestamo(id, data) {
-        const prestamos = this.getPrestamos();
+    async updatePrestamo(id, data) {
+        const prestamos = await this.getPrestamos();
         const index = prestamos.findIndex(p => p.id === id);
         if (index !== -1) {
             prestamos[index] = { ...prestamos[index], ...data };
-            this.set(this.KEYS.PRESTAMOS, prestamos);
+            await this.set(this.KEYS.PRESTAMOS, prestamos);
             this.triggerAutoBackup();
             return true;
         }
         return false;
     },
 
-    deletePrestamo(id) {
-        const prestamos = this.getPrestamos();
+    async deletePrestamo(id) {
+        const prestamos = await this.getPrestamos();
         const filtered = prestamos.filter(p => p.id !== id);
-        this.set(this.KEYS.PRESTAMOS, filtered);
+        await this.set(this.KEYS.PRESTAMOS, filtered);
         this.triggerAutoBackup();
         return true;
     },
@@ -219,71 +219,71 @@ const Storage = {
     // PAGOS
     // ============================================
 
-    getPagos() {
-        return this.get(this.KEYS.PAGOS) || [];
+    async getPagos() {
+        return await this.get(this.KEYS.PAGOS) || [];
     },
 
-    getPagosByPrestamo(prestamoId) {
-        const pagos = this.getPagos();
+    async getPagosByPrestamo(prestamoId) {
+        const pagos = await this.getPagos();
         return pagos.filter(p => p.prestamoId === prestamoId);
     },
 
-    addPago(pago) {
-        const pagos = this.getPagos();
+    async addPago(pago) {
+        const pagos = await this.getPagos();
         pago.id = Date.now().toString();
         pago.fechaRegistro = new Date().toISOString();
         pagos.push(pago);
-        this.set(this.KEYS.PAGOS, pagos);
+        await this.set(this.KEYS.PAGOS, pagos);
 
         // Actualizar préstamo
-        const prestamo = this.getPrestamo(pago.prestamoId);
+        const prestamo = await this.getPrestamo(pago.prestamoId);
         if (prestamo) {
             prestamo.cuotasPagadas++;
             if (prestamo.cuotasPagadas >= prestamo.cantidadCuotas) {
                 prestamo.estado = 'finalizado';
                 prestamo.fechaFinalizacion = new Date().toISOString();
             }
-            this.updatePrestamo(prestamo.id, prestamo);
+            await this.updatePrestamo(prestamo.id, prestamo);
         }
 
         this.triggerAutoBackup();
         return pago;
     },
 
-    getPago(id) {
-        const pagos = this.getPagos();
+    async getPago(id) {
+        const pagos = await this.getPagos();
         return pagos.find(p => p.id === id);
     },
 
-    updatePago(id, data) {
-        const pagos = this.getPagos();
+    async updatePago(id, data) {
+        const pagos = await this.getPagos();
         const index = pagos.findIndex(p => p.id === id);
         if (index !== -1) {
             pagos[index] = { ...pagos[index], ...data };
-            this.set(this.KEYS.PAGOS, pagos);
+            await this.set(this.KEYS.PAGOS, pagos);
             this.triggerAutoBackup();
             return pagos[index];
         }
         return null;
     },
 
-    deletePago(id) {
-        const pago = this.getPago(id);
+    async deletePago(id) {
+        const pago = await this.getPago(id);
         if (!pago) return false;
 
-        const pagos = this.getPagos();
+        const pagos = await this.getPagos();
         const filtered = pagos.filter(p => p.id !== id);
-        this.set(this.KEYS.PAGOS, filtered);
+        await this.set(this.KEYS.PAGOS, filtered);
 
         // Actualizar préstamo (restar una cuota pagada)
-        const prestamo = this.getPrestamo(pago.prestamoId);
+        const prestamo = await this.getPrestamo(pago.prestamoId);
         if (prestamo && prestamo.cuotasPagadas > 0) {
             prestamo.cuotasPagadas--;
             if (prestamo.estado === 'finalizado' && prestamo.cuotasPagadas < prestamo.cantidadCuotas) {
                 prestamo.estado = 'activo';
                 prestamo.fechaFinalizacion = null;
             }
-            this.updatePrestamo(prestamo.id, prestamo);
+            await this.updatePrestamo(prestamo.id, prestamo);
         }
 
         this.triggerAutoBackup();
@@ -305,25 +305,25 @@ const Storage = {
     // CONFIGURACIÓN Y CAPITAL
     // ============================================
 
-    getConfig() {
-        return this.get(this.KEYS.CONFIG) || {};
+    async getConfig() {
+        return await this.get(this.KEYS.CONFIG) || {};
     },
 
-    updateConfig(config) {
-        const current = this.getConfig();
-        this.set(this.KEYS.CONFIG, { ...current, ...config });
+    async updateConfig(config) {
+        const current = await this.getConfig();
+        await this.set(this.KEYS.CONFIG, { ...current, ...config });
     },
 
     // ============================================
     // EXPORTAR/IMPORTAR DATOS
     // ============================================
 
-    exportData() {
+    async exportData() {
         const data = {
-            clientes: this.getClientes(),
-            prestamos: this.getPrestamos(),
-            pagos: this.getPagos(),
-            config: this.getConfig(),
+            clientes: await this.getClientes(),
+            prestamos: await this.getPrestamos(),
+            pagos: await this.getPagos(),
+            config: await this.getConfig(),
             profile: JSON.parse(localStorage.getItem('mindset_profile') || '{}'),
             exportDate: new Date().toISOString(),
             version: '1.0'
@@ -344,17 +344,17 @@ const Storage = {
         return true;
     },
 
-    importData(file) {
+    async importData(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     
-                    if (data.clientes) this.set(this.KEYS.CLIENTES, data.clientes);
-                    if (data.prestamos) this.set(this.KEYS.PRESTAMOS, data.prestamos);
-                    if (data.pagos) this.set(this.KEYS.PAGOS, data.pagos);
-                    if (data.config) this.set(this.KEYS.CONFIG, data.config);
+                    if (data.clientes) await this.set(this.KEYS.CLIENTES, data.clientes);
+                    if (data.prestamos) await this.set(this.KEYS.PRESTAMOS, data.prestamos);
+                    if (data.pagos) await this.set(this.KEYS.PAGOS, data.pagos);
+                    if (data.config) await this.set(this.KEYS.CONFIG, data.config);
                     if (data.profile) localStorage.setItem('mindset_profile', JSON.stringify(data.profile));
                     
                     resolve(data);

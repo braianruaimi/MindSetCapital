@@ -21,7 +21,7 @@ const BackupSystem = {
     // ============================================
 
     // Crear backup automático (llamado desde Storage en cada operación)
-    createAutoBackup() {
+    async createAutoBackup() {
         // Throttling: no crear backup si ya se creó uno hace menos de MIN_BACKUP_INTERVAL
         const now = Date.now();
         if (now - this.lastBackupTime < this.MIN_BACKUP_INTERVAL) {
@@ -34,11 +34,11 @@ const BackupSystem = {
                 id: Date.now(),
                 fecha: new Date().toISOString(),
                 datos: {
-                    clientes: Storage.getClientes() || [],
-                    prestamos: Storage.getPrestamos() || [],
-                    pagos: Storage.getPagos() || [],
-                    config: Storage.get(Storage.KEYS.CONFIG) || {},
-                    profile: Storage.get(Storage.KEYS.CAPITAL) || {}
+                    clientes: await Storage.getClientes() || [],
+                    prestamos: await Storage.getPrestamos() || [],
+                    pagos: await Storage.getPagos() || [],
+                    config: await Storage.get(Storage.KEYS.CONFIG) || {},
+                    profile: await Storage.get(Storage.KEYS.CAPITAL) || {}
                 }
             };
 
@@ -79,7 +79,7 @@ const BackupSystem = {
     },
 
     // Restaurar desde un backup específico
-    restoreFromBackup(backupId) {
+    async restoreFromBackup(backupId) {
         const backups = this.getAutoBackups();
         const backup = backups.find(b => b.id === backupId);
         
@@ -94,11 +94,11 @@ const BackupSystem = {
 
         try {
             // Restaurar todos los datos
-            Storage.set(Storage.KEYS.CLIENTES, backup.datos.clientes);
-            Storage.set(Storage.KEYS.PRESTAMOS, backup.datos.prestamos);
-            Storage.set(Storage.KEYS.PAGOS, backup.datos.pagos);
-            Storage.set(Storage.KEYS.CONFIG, backup.datos.config);
-            Storage.set(Storage.KEYS.CAPITAL, backup.datos.profile);
+            await Storage.set(Storage.KEYS.CLIENTES, backup.datos.clientes);
+            await Storage.set(Storage.KEYS.PRESTAMOS, backup.datos.prestamos);
+            await Storage.set(Storage.KEYS.PAGOS, backup.datos.pagos);
+            await Storage.set(Storage.KEYS.CONFIG, backup.datos.config);
+            await Storage.set(Storage.KEYS.CAPITAL, backup.datos.profile);
             
             alert('✅ Datos restaurados correctamente. Recargando aplicación...');
             location.reload();

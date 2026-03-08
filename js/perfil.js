@@ -340,13 +340,13 @@ const PerfilModule = (() => {
     /**
      * Exporta un respaldo completo de todos los datos
      */
-    function exportBackup() {
+    async function exportBackup() {
         try {
-            Storage.exportData();
+            await Storage.exportData();
             
             // Guardar fecha del último backup
             localStorage.setItem('mindset_last_backup', new Date().toISOString());
-            updateBackupStatus();
+            await updateBackupStatus();
             
             showNotification('✅ Respaldo descargado exitosamente', 'success');
         } catch (error) {
