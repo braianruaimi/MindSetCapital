@@ -53,33 +53,27 @@ function setupLogin() {
         
         const password = passwordInput.value;
         
-        // Hash de la contraseña correcta (2026)
-        const correctPasswordHash = 'c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2'; // SHA-256 de "2026"
-        
-        if (typeof SecurityModule !== 'undefined') {
-            const inputHash = await SecurityModule.hashPassword(password);
-            
-            if (inputHash === correctPasswordHash) {
+        // Verificar contraseña directamente
+        if (password === '2026') {
+            try {
                 localStorage.setItem('mindset_authenticated', 'true');
-                await SecurityModule.init(password);
+                
+                // Inicializar seguridad si está disponible
+                if (typeof SecurityModule !== 'undefined') {
+                    await SecurityModule.init(password);
+                }
+                
                 showMainApp();
                 passwordInput.value = '';
-            } else {
-                alert('❌ Contraseña incorrecta. Intenta de nuevo.');
-                passwordInput.value = '';
-                passwordInput.focus();
+            } catch (error) {
+                console.error('Error al inicializar:', error);
+                alert('⚠️ Error al inicializar. Recargando...');
+                location.reload();
             }
         } else {
-            // Fallback si SecurityModule no está disponible
-            if (password === '2026') {
-                localStorage.setItem('mindset_authenticated', 'true');
-                showMainApp();
-                passwordInput.value = '';
-            } else {
-                alert('❌ Contraseña incorrecta. Intenta de nuevo.');
-                passwordInput.value = '';
-                passwordInput.focus();
-            }
+            alert('❌ Contraseña incorrecta. Intenta de nuevo.');
+            passwordInput.value = '';
+            passwordInput.focus();
         }
     });
 }
