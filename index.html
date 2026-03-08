@@ -21,6 +21,9 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- jsPDF para generar PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <!-- Pantalla de Login -->
@@ -449,10 +452,16 @@
 
                     <div class="backup-actions">
                         <button class="btn-success btn-full" id="btnExportBackup">
-                            📥 Descargar Respaldo Completo
+                            📥 Descargar Respaldo JSON
                         </button>
-                        <button class="btn-primary btn-full" id="btnImportBackup">
-                            📤 Restaurar desde Respaldo
+                        <button class="btn-primary btn-full" id="btnExportPDF">
+                            📄 Descargar Reporte PDF
+                        </button>
+                        <button class="btn-primary btn-full" id="btnViewAutoBackups">
+                            📦 Ver Backups Automáticos
+                        </button>
+                        <button class="btn-secondary btn-full" id="btnImportBackup">
+                            📤 Restaurar desde Archivo
                         </button>
                         <input type="file" id="fileImportBackup" accept=".json" style="display: none;">
                     </div>
@@ -674,7 +683,8 @@
                 <div id="perfilClienteContenido"></div>
             </div>
         </div>
-    </div>
+    </div>backup.js"></script>
+    <script src="js/
     
     </div><!-- Fin mainApp -->
 

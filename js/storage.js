@@ -94,6 +94,7 @@ const Storage = {
         cliente.score = 100; // Score inicial
         clientes.push(cliente);
         this.set(this.KEYS.CLIENTES, clientes);
+        this.triggerAutoBackup();
         return cliente;
     },
 
@@ -103,6 +104,7 @@ const Storage = {
         if (index !== -1) {
             clientes[index] = { ...clientes[index], ...data };
             this.set(this.KEYS.CLIENTES, clientes);
+            this.triggerAutoBackup();
             return true;
         }
         return false;
@@ -112,6 +114,7 @@ const Storage = {
         const clientes = this.getClientes();
         const filtered = clientes.filter(c => c.id !== id);
         this.set(this.KEYS.CLIENTES, filtered);
+        this.triggerAutoBackup();
         return true;
     },
 
@@ -141,6 +144,7 @@ const Storage = {
         prestamo.cuotasPagadas = 0;
         prestamos.push(prestamo);
         this.set(this.KEYS.PRESTAMOS, prestamos);
+        this.triggerAutoBackup();
         return prestamo;
     },
 
@@ -150,6 +154,7 @@ const Storage = {
         if (index !== -1) {
             prestamos[index] = { ...prestamos[index], ...data };
             this.set(this.KEYS.PRESTAMOS, prestamos);
+            this.triggerAutoBackup();
             return true;
         }
         return false;
@@ -159,6 +164,7 @@ const Storage = {
         const prestamos = this.getPrestamos();
         const filtered = prestamos.filter(p => p.id !== id);
         this.set(this.KEYS.PRESTAMOS, filtered);
+        this.triggerAutoBackup();
         return true;
     },
 
@@ -193,6 +199,7 @@ const Storage = {
             this.updatePrestamo(prestamo.id, prestamo);
         }
 
+        this.triggerAutoBackup();
         return pago;
     },
 
@@ -207,6 +214,7 @@ const Storage = {
         if (index !== -1) {
             pagos[index] = { ...pagos[index], ...data };
             this.set(this.KEYS.PAGOS, pagos);
+            this.triggerAutoBackup();
             return pagos[index];
         }
         return null;
@@ -231,7 +239,19 @@ const Storage = {
             this.updatePrestamo(prestamo.id, prestamo);
         }
 
+        this.triggerAutoBackup();
         return true;
+    },
+
+    // ============================================
+    // AUTO-BACKUP
+    // ============================================
+
+    triggerAutoBackup() {
+        // Disparar backup automático si el sistema existe
+        if (typeof BackupSystem !== 'undefined' && BackupSystem.createAutoBackup) {
+            setTimeout(() => BackupSystem.createAutoBackup(), 100);
+        }
     },
 
     // ============================================
