@@ -100,14 +100,14 @@ async function initializeApp() {
         }
         
         // Inicializar módulos
-        ClientesModule.init();
-        PrestamosModule.init();
-        PagosModule.init();
+        await ClientesModule.init();
+        await PrestamosModule.init();
+        await PagosModule.init();
         await DashboardModule.init();
-        AnalyticsModule.init();
-        SimuladorModule.init();
+        await AnalyticsModule.init();
+        await SimuladorModule.init();
         ChatbotModule.init();
-        PerfilModule.init();
+        await PerfilModule.init();
         
         console.log('✅ Aplicación iniciada correctamente');
     } catch (error) {

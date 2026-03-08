@@ -4,10 +4,10 @@
 
 const PagosModule = {
 
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.renderPagos();
-        this.loadFilters();
+        await this.renderPagos();
+        await this.loadFilters();
     },
 
     setupEventListeners() {

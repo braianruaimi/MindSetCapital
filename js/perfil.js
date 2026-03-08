@@ -9,16 +9,16 @@ const PerfilModule = (() => {
     /**
      * Inicializa el módulo de perfil
      */
-    function init() {
-        loadProfile();
+    async function init() {
+        await loadProfile();
         setupEventListeners();
-        displayProfile();
+        await displayProfile();
     }
 
     /**
      * Carga el perfil desde localStorage
      */
-    function loadProfile() {
+    async function loadProfile() {
         const stored = localStorage.getItem('mindset_profile');
         if (stored) {
             profileData = JSON.parse(stored);
@@ -32,7 +32,7 @@ const PerfilModule = (() => {
                 goals: [],
                 quote: 'El éxito es la suma de pequeños esfuerzos repetidos día tras día.'
             };
-            saveProfile();
+            await saveProfile();
         }
     }
 
@@ -231,13 +231,13 @@ const PerfilModule = (() => {
     /**
      * Muestra todos los datos del perfil
      */
-    function displayProfile() {
+    async function displayProfile() {
         displayPhoto();
         displayPersonalData();
-        displayCapital();
+        await displayCapital();
         displayGoals();
         displayQuote();
-        updateBackupStatus();
+        await updateBackupStatus();
     }
 
     /**

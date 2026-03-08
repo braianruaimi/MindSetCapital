@@ -4,9 +4,9 @@
 
 const ClientesModule = {
     
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.renderClientes();
+        await this.renderClientes();
     },
 
     setupEventListeners() {

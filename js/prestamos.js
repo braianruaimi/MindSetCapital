@@ -6,10 +6,10 @@ const PrestamosModule = {
 
     currentFilter: 'activos',
 
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.renderPrestamos();
-        this.loadClientesSelect();
+        await this.renderPrestamos();
+        await this.loadClientesSelect();
     },
 
     setupEventListeners() {

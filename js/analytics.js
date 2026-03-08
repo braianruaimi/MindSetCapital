@@ -4,10 +4,10 @@
 
 const AnalyticsModule = {
 
-    init() {
-        this.calculateAnalytics();
-        this.showTopClientes();
-        this.showClientesRiesgo();
+    async init() {
+        await this.calculateAnalytics();
+        await this.showTopClientes();
+        await this.showClientesRiesgo();
     },
 
     async calculateAnalytics() {

@@ -6,9 +6,9 @@ const SimuladorModule = {
 
     chart: null,
 
-    init() {
+    async init() {
         this.setupEventListeners();
-        this.loadDefaultValues();
+        await this.loadDefaultValues();
     },
 
     setupEventListeners() {
