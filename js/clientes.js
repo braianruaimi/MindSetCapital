@@ -11,32 +11,52 @@ const ClientesModule = {
 
     setupEventListeners() {
         // Botón nuevo cliente
-        document.getElementById('btnNuevoCliente')?.addEventListener('click', () => {
-            this.openModal();
-        });
+        const btnNuevo = document.getElementById('btnNuevoCliente');
+        if (btnNuevo) {
+            btnNuevo.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Click en Nuevo Cliente');
+                this.openModal();
+            });
+        }
 
         // Formulario de cliente
-        document.getElementById('formCliente')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveCliente(e.target);
-        });
+        const formCliente = document.getElementById('formCliente');
+        if (formCliente) {
+            formCliente.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveCliente(e.target);
+            });
+        }
 
         // Búsqueda de clientes
-        document.getElementById('searchCliente')?.addEventListener('input', (e) => {
-            this.searchClientes(e.target.value);
-        });
+        const searchInput = document.getElementById('searchCliente');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchClientes(e.target.value);
+            });
+        }
 
         // Cerrar modales
         document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.closeModals();
             });
         });
+        
+        console.log('✅ Event listeners de clientes configurados');
     },
 
     openModal(clienteId = null) {
         const modal = document.getElementById('modalCliente');
         const form = document.getElementById('formCliente');
+        
+        if (!modal || !form) {
+            console.error('Modal o formulario de cliente no encontrado');
+            return;
+        }
+        
         form.reset();
 
         if (clienteId) {
@@ -53,6 +73,7 @@ const ClientesModule = {
         }
 
         modal.classList.add('active');
+        console.log('Modal de cliente abierto');
     },
 
     closeModals() {

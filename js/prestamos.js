@@ -14,15 +14,23 @@ const PrestamosModule = {
 
     setupEventListeners() {
         // Botón nuevo préstamo
-        document.getElementById('btnNuevoPrestamo')?.addEventListener('click', () => {
-            this.openModal();
-        });
+        const btnNuevo = document.getElementById('btnNuevoPrestamo');
+        if (btnNuevo) {
+            btnNuevo.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Click en Nuevo Préstamo');
+                this.openModal();
+            });
+        }
 
         // Formulario
-        document.getElementById('formPrestamo')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.savePrestamo(e.target);
-        });
+        const formPrestamo = document.getElementById('formPrestamo');
+        if (formPrestamo) {
+            formPrestamo.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.savePrestamo(e.target);
+            });
+        }
 
         // Toggle cliente nuevo/existente
         document.querySelectorAll('input[name="tipoCliente"]').forEach(radio => {
@@ -33,12 +41,17 @@ const PrestamosModule = {
 
         // Calcular valores en tiempo real
         const form = document.getElementById('formPrestamo');
-        ['montoEntregado', 'cantidadCuotas', 'valorCuota'].forEach(field => {
-            form?.[field]?.addEventListener('input', () => {
-                this.calculateLoanDetails();
-                this.updateCuotasSelector();
+        if (form) {
+            ['montoEntregado', 'cantidadCuotas', 'valorCuota'].forEach(field => {
+                const input = form[field];
+                if (input) {
+                    input.addEventListener('input', () => {
+                        this.calculateLoanDetails();
+                        this.updateCuotasSelector();
+                    });
+                }
             });
-        });
+        }
 
         // Tabs de filtro
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -49,6 +62,16 @@ const PrestamosModule = {
                 this.renderPrestamos();
             });
         });
+        
+        // Cerrar modales
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.closeModals();
+            });
+        });
+        
+        console.log('✅ Event listeners de préstamos configurados');
     },
 
     loadClientesSelect() {
@@ -148,7 +171,7 @@ const PrestamosModule = {
                 // Usar cliente existente
                 clienteId = formData.get('clienteExistenteId');
                 if (!clienteId) {
-                    ClientesModule.showNotification('Por favor selecciona un cliente', 'error');
+                    this.showNotification('Por favor selecciona un cliente', 'error');
                     return;
                 }
             } else {
@@ -166,7 +189,7 @@ const PrestamosModule = {
                     const clienteExistente = this.buscarClientePorTelefono(clienteData.telefono);
                     if (clienteExistente) {
                         clienteId = clienteExistente.id;
-                        ClientesModule.showNotification(`Cliente existente encontrado: ${clienteExistente.nombre}`, 'info');
+                        this.showNotification(`Cliente existente encontrado: ${clienteExistente.nombre}`, 'info');
                     } else {
                         const nuevoCliente = Storage.addCliente(clienteData);
                         clienteId = nuevoCliente.id;
@@ -201,13 +224,13 @@ const PrestamosModule = {
             prestamo.estado = cuotasPagadas >= prestamo.cantidadCuotas ? 'finalizado' : 'activo';
             
             Storage.updatePrestamo(prestamoId, prestamo);
-            ClientesModule.showNotification('Préstamo actualizado exitosamente', 'success');
+            this.showNotification('Préstamo actualizado exitosamente', 'success');
         } else {
             Storage.addPrestamo(prestamo);
-            ClientesModule.showNotification('Préstamo creado exitosamente', 'success');
+            this.showNotification('Préstamo creado exitosamente', 'success');
         }
         
-        ClientesModule.closeModals();
+        this.closeModals();
         this.renderPrestamos();
         
         if (typeof DashboardModule !== 'undefined') {
@@ -216,6 +239,12 @@ const PrestamosModule = {
         if (typeof ClientesModule !== 'undefined') {
             ClientesModule.init();
         }
+    },
+
+    closeModals() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.classList.remove('active');
+        });
     },
 
     renderPrestamos() {
@@ -503,5 +532,25 @@ const PrestamosModule = {
      */
     editPrestamo(prestamoId) {
         this.openModal(prestamoId);
+    },
+
+    /**
+     * Mostrar notificación
+     */
+    showNotification(message, type = 'info') {
+        // Crear notificación temporal
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type}`;
+        notification.textContent = message;
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '10000';
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
 };

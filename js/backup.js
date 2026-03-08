@@ -524,9 +524,5 @@ const BackupSystem = {
     }
 };
 
-// Inicializar cuando el documento esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => BackupSystem.init());
-} else {
-    BackupSystem.init();
-}
+// No inicializar automáticamente, dejar que app.js lo haga
+// Se exporta como módulo disponible para uso posterior

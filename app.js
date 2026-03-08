@@ -75,6 +75,11 @@ function initializeApp() {
         // Inicializar storage
         Storage.init();
         
+        // Inicializar sistema de backups
+        if (typeof BackupSystem !== 'undefined') {
+            BackupSystem.init();
+        }
+        
         // Inicializar módulos
         ClientesModule.init();
         PrestamosModule.init();
