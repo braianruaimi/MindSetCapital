@@ -504,35 +504,89 @@
     <div id="modalPrestamo" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Nuevo Préstamo</h3>
+                <h3 id="tituloModalPrestamo">Nuevo Préstamo</h3>
                 <button class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formPrestamo">
-                    <div class="form-group">
-                        <label>Cliente *</label>
-                        <select name="clienteId" required id="selectCliente">
+                    <input type="hidden" name="prestamoId" id="prestamoId">
+                    
+                    <!-- Selector: Cliente Nuevo o Existente -->
+                    <div class="form-group tipo-cliente-selector">
+                        <label>¿Cliente nuevo o existente?</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="tipoCliente" value="nuevo" checked>
+                                <span>👤 Cliente Nuevo</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="tipoCliente" value="existente">
+                                <span>📋 Cliente Existente</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Cliente Existente (oculto por defecto) -->
+                    <div class="form-group" id="grupoClienteExistente" style="display: none;">
+                        <label>Seleccionar Cliente</label>
+                        <select name="clienteExistenteId" id="selectCliente">
                             <option value="">Seleccione un cliente</option>
                         </select>
                     </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Dinero Entregado *</label>
-                            <input type="number" name="montoEntregado" required step="0.01">
+
+                    <!-- Datos del Cliente Nuevo -->
+                    <div id="datosClienteNuevo">
+                        <div class="form-section-header">
+                            <h4>👤 Información del Cliente</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nombre</label>
+                                <input type="text" name="clienteNombre" id="clienteNombre" placeholder="Nombre del cliente">
+                            </div>
+                            <div class="form-group">
+                                <label>Apellido</label>
+                                <input type="text" name="clienteApellido" id="clienteApellido" placeholder="Apellido">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="tel" name="clienteTelefono" id="clienteTelefono" placeholder="Número de teléfono">
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="clienteEmail" id="clienteEmail" placeholder="correo@ejemplo.com">
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>Cantidad de Cuotas *</label>
-                            <input type="number" name="cantidadCuotas" required min="1">
+                            <label>Dirección</label>
+                            <input type="text" name="clienteDireccion" id="clienteDireccion" placeholder="Dirección completa">
+                        </div>
+                    </div>
+
+                    <!-- Datos del Préstamo -->
+                    <div class="form-section-header">
+                        <h4>💰 Información del Préstamo</h4>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Dinero Entregado</label>
+                            <input type="number" name="montoEntregado" id="montoEntregado" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad de Cuotas</label>
+                            <input type="number" name="cantidadCuotas" id="cantidadCuotas" min="1" placeholder="12">
                         </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Valor de Cuota *</label>
-                            <input type="number" name="valorCuota" required step="0.01">
+                            <label>Valor de Cuota</label>
+                            <input type="number" name="valorCuota" id="valorCuota" step="0.01" placeholder="0.00">
                         </div>
                         <div class="form-group">
-                            <label>Frecuencia de Pago *</label>
-                            <select name="frecuencia" required>
+                            <label>Frecuencia de Pago</label>
+                            <select name="frecuencia" id="frecuencia">
                                 <option value="semanal">Semanal</option>
                                 <option value="quincenal">Quincenal</option>
                                 <option value="mensual">Mensual</option>
@@ -541,18 +595,28 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Fecha de Inicio *</label>
-                            <input type="date" name="fechaInicio" required>
+                            <label>Fecha de Inicio</label>
+                            <input type="date" name="fechaInicio" id="fechaInicio">
                         </div>
                         <div class="form-group">
-                            <label>Fecha Primer Pago *</label>
-                            <input type="date" name="fechaPrimerPago" required>
+                            <label>Fecha Primer Pago</label>
+                            <input type="date" name="fechaPrimerPago" id="fechaPrimerPago">
                         </div>
                     </div>
+
+                    <!-- Cuotas Pagadas (solo visible en modo edición) -->
+                    <div class="form-group" id="grupoCuotasPagadas" style="display: none;">
+                        <label>Cuotas Pagadas</label>
+                        <select name="cuotasPagadas" id="selectCuotasPagadas">
+                            <option value="0">0 cuotas pagadas</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label>Notas</label>
-                        <textarea name="notas" rows="2"></textarea>
+                        <textarea name="notas" id="notasPrestamo" rows="2" placeholder="Observaciones adicionales..."></textarea>
                     </div>
+                    
                     <div class="info-box" id="infoCalculos">
                         <p><strong>Total a Cobrar:</strong> <span id="totalCobrarCalc">$0</span></p>
                         <p><strong>Ganancia:</strong> <span id="gananciaCalc">$0</span></p>
@@ -560,7 +624,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn-secondary close-modal">Cancelar</button>
-                        <button type="submit" class="btn-primary">Crear Préstamo</button>
+                        <button type="submit" class="btn-primary" id="btnSubmitPrestamo">Crear Préstamo</button>
                     </div>
                 </form>
             </div>

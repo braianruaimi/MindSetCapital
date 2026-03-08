@@ -24,11 +24,19 @@ const PrestamosModule = {
             this.savePrestamo(e.target);
         });
 
+        // Toggle cliente nuevo/existente
+        document.querySelectorAll('input[name="tipoCliente"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleTipoCliente(e.target.value);
+            });
+        });
+
         // Calcular valores en tiempo real
         const form = document.getElementById('formPrestamo');
         ['montoEntregado', 'cantidadCuotas', 'valorCuota'].forEach(field => {
             form?.[field]?.addEventListener('input', () => {
                 this.calculateLoanDetails();
+                this.updateCuotasSelector();
             });
         });
 
@@ -52,17 +60,57 @@ const PrestamosModule = {
             clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
     },
 
-    openModal() {
+    openModal(prestamoId = null) {
         const modal = document.getElementById('modalPrestamo');
         const form = document.getElementById('formPrestamo');
         form.reset();
         
-        // Establecer fecha de hoy por defecto
-        const hoy = new Date().toISOString().split('T')[0];
-        form.fechaInicio.value = hoy;
-        form.fechaPrimerPago.value = hoy;
+        // Modo crear o editar
+        const isEdit = prestamoId !== null;
+        document.getElementById('tituloModalPrestamo').textContent = isEdit ? 'Editar Préstamo' : 'Nuevo Préstamo';
+        document.getElementById('btnSubmitPrestamo').textContent = isEdit ? 'Actualizar Préstamo' : 'Crear Préstamo';
         
-        this.loadClientesSelect();
+        // Mostrar/ocultar campos según modo
+        document.querySelector('.tipo-cliente-selector').style.display = isEdit ? 'none' : 'block';
+        document.getElementById('grupoCuotasPagadas').style.display = isEdit ? 'block' : 'none';
+        
+        if (isEdit) {
+            // Cargar datos del préstamo
+            const prestamo = Storage.getPrestamo(prestamoId);
+            if (prestamo) {
+                document.getElementById('prestamoId').value = prestamoId;
+                document.getElementById('montoEntregado').value = prestamo.montoEntregado;
+                document.getElementById('cantidadCuotas').value = prestamo.cantidadCuotas;
+                document.getElementById('valorCuota').value = prestamo.valorCuota;
+                document.getElementById('frecuencia').value = prestamo.frecuencia;
+                document.getElementById('fechaInicio').value = prestamo.fechaInicio;
+                document.getElementById('fechaPrimerPago').value = prestamo.fechaPrimerPago;
+                document.getElementById('notasPrestamo').value = prestamo.notas || '';
+                
+                // Cargar selector de cuotas pagadas
+                this.updateCuotasSelector();
+                document.getElementById('selectCuotasPagadas').value = prestamo.cuotasPagadas || 0;
+                
+                // Ocultar sección de cliente
+                document.getElementById('datosClienteNuevo').style.display = 'none';
+                document.getElementById('grupoClienteExistente').style.display = 'none';
+                
+                this.calculateLoanDetails();
+            }
+        } else {
+            // Modo crear: establecer valores por defecto
+            const hoy = new Date().toISOString().split('T')[0];
+            form.fechaInicio.value = hoy;
+            form.fechaPrimerPago.value = hoy;
+            document.getElementById('prestamoId').value = '';
+            
+            // Seleccionar "nuevo cliente" por defecto
+            document.querySelector('input[name="tipoCliente"][value="nuevo"]').checked = true;
+            this.toggleTipoCliente('nuevo');
+            
+            this.loadClientesSelect();
+        }
+        
         modal.classList.add('active');
     },
 
@@ -83,31 +131,90 @@ const PrestamosModule = {
 
     savePrestamo(form) {
         const formData = new FormData(form);
+        const prestamoId = formData.get('prestamoId');
+        const isEdit = prestamoId && prestamoId !== '';
+        
+        let clienteId;
+        
+        if (isEdit) {
+            // Modo edición: mantener el cliente existente
+            const prestamoExistente = Storage.getPrestamo(prestamoId);
+            clienteId = prestamoExistente.clienteId;
+        } else {
+            // Modo creación: determinar cliente
+            const tipoCliente = formData.get('tipoCliente');
+            
+            if (tipoCliente === 'existente') {
+                // Usar cliente existente
+                clienteId = formData.get('clienteExistenteId');
+                if (!clienteId) {
+                    ClientesModule.showNotification('Por favor selecciona un cliente', 'error');
+                    return;
+                }
+            } else {
+                // Crear o encontrar cliente nuevo
+                const clienteData = {
+                    nombre: formData.get('clienteNombre') || 'Cliente',
+                    apellido: formData.get('clienteApellido') || '',
+                    telefono: formData.get('clienteTelefono') || '',
+                    email: formData.get('clienteEmail') || '',
+                    direccion: formData.get('clienteDireccion') || ''
+                };
+                
+                // Buscar cliente por teléfono si se proporcionó
+                if (clienteData.telefono) {
+                    const clienteExistente = this.buscarClientePorTelefono(clienteData.telefono);
+                    if (clienteExistente) {
+                        clienteId = clienteExistente.id;
+                        ClientesModule.showNotification(`Cliente existente encontrado: ${clienteExistente.nombre}`, 'info');
+                    } else {
+                        const nuevoCliente = Storage.addCliente(clienteData);
+                        clienteId = nuevoCliente.id;
+                    }
+                } else {
+                    const nuevoCliente = Storage.addCliente(clienteData);
+                    clienteId = nuevoCliente.id;
+                }
+            }
+        }
         
         const prestamo = {
-            clienteId: formData.get('clienteId'),
-            montoEntregado: parseFloat(formData.get('montoEntregado')),
-            cantidadCuotas: parseInt(formData.get('cantidadCuotas')),
-            valorCuota: parseFloat(formData.get('valorCuota')),
-            frecuencia: formData.get('frecuencia'),
-            fechaInicio: formData.get('fechaInicio'),
-            fechaPrimerPago: formData.get('fechaPrimerPago'),
-            notas: formData.get('notas')
+            clienteId: clienteId,
+            montoEntregado: parseFloat(formData.get('montoEntregado')) || 0,
+            cantidadCuotas: parseInt(formData.get('cantidadCuotas')) || 1,
+            valorCuota: parseFloat(formData.get('valorCuota')) || 0,
+            frecuencia: formData.get('frecuencia') || 'semanal',
+            fechaInicio: formData.get('fechaInicio') || new Date().toISOString().split('T')[0],
+            fechaPrimerPago: formData.get('fechaPrimerPago') || new Date().toISOString().split('T')[0],
+            notas: formData.get('notas') || ''
         };
 
         // Calcular totales
         prestamo.totalCobrar = prestamo.cantidadCuotas * prestamo.valorCuota;
         prestamo.ganancia = prestamo.totalCobrar - prestamo.montoEntregado;
-        prestamo.tasaInteres = (prestamo.ganancia / prestamo.montoEntregado) * 100;
+        prestamo.tasaInteres = prestamo.montoEntregado > 0 ? (prestamo.ganancia / prestamo.montoEntregado) * 100 : 0;
 
-        Storage.addPrestamo(prestamo);
+        if (isEdit) {
+            // Actualizar cuotas pagadas si se especificó
+            const cuotasPagadas = parseInt(formData.get('cuotasPagadas')) || 0;
+            prestamo.cuotasPagadas = cuotasPagadas;
+            prestamo.estado = cuotasPagadas >= prestamo.cantidadCuotas ? 'finalizado' : 'activo';
+            
+            Storage.updatePrestamo(prestamoId, prestamo);
+            ClientesModule.showNotification('Préstamo actualizado exitosamente', 'success');
+        } else {
+            Storage.addPrestamo(prestamo);
+            ClientesModule.showNotification('Préstamo creado exitosamente', 'success');
+        }
         
-        ClientesModule.showNotification('Préstamo creado exitosamente', 'success');
         ClientesModule.closeModals();
         this.renderPrestamos();
         
         if (typeof DashboardModule !== 'undefined') {
             DashboardModule.init();
+        }
+        if (typeof ClientesModule !== 'undefined') {
+            ClientesModule.init();
         }
     },
 
@@ -203,6 +310,9 @@ const PrestamosModule = {
                                 💰 Registrar Pago
                             </button>
                         ` : ''}
+                        <button class="btn-primary btn-small" onclick="PrestamosModule.editPrestamo('${prestamo.id}')">
+                            ✏️ Editar
+                        </button>
                         <button class="btn-secondary btn-small" onclick="PrestamosModule.viewDetails('${prestamo.id}')">
                             📊 Ver Detalle
                         </button>
@@ -341,5 +451,57 @@ const PrestamosModule = {
         `;
 
         modal.classList.add('active');
+    },
+
+    /**
+     * Toggle between nuevo/existente cliente
+     */
+    toggleTipoCliente(tipo) {
+        const datosNuevo = document.getElementById('datosClienteNuevo');
+        const grupoExistente = document.getElementById('grupoClienteExistente');
+        
+        if (tipo === 'nuevo') {
+            datosNuevo.style.display = 'block';
+            grupoExistente.style.display = 'none';
+        } else {
+            datosNuevo.style.display = 'none';
+            grupoExistente.style.display = 'block';
+        }
+    },
+
+    /**
+     * Buscar cliente por teléfono
+     */
+    buscarClientePorTelefono(telefono) {
+        if (!telefono) return null;
+        const clientes = Storage.getClientes();
+        return clientes.find(c => c.telefono === telefono);
+    },
+
+    /**
+     * Actualizar selector de cuotas pagadas
+     */
+    updateCuotasSelector() {
+        const cantidadCuotas = parseInt(document.getElementById('cantidadCuotas').value) || 0;
+        const select = document.getElementById('selectCuotasPagadas');
+        
+        if (!select || cantidadCuotas <=  0) return;
+        
+        select.innerHTML = '';
+        for (let i = 0; i <= cantidadCuotas; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i === 0 ? 'Ninguna cuota pagada' : 
+                                i === 1 ? '1 cuota pagada' :
+                                `${i} cuotas pagadas`;
+            select.appendChild(option);
+        }
+    },
+
+    /**
+     * Abrir modal para editar préstamo
+     */
+    editPrestamo(prestamoId) {
+        this.openModal(prestamoId);
     }
 };
