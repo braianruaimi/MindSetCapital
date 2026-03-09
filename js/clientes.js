@@ -69,6 +69,8 @@ const ClientesModule = {
             if (cliente) {
                 form.nombre.value = cliente.nombre;
                 form.telefono.value = cliente.telefono;
+                form.email.value = cliente.email || '';
+                form.dni.value = cliente.dni || '';
                 form.direccion.value = cliente.direccion || '';
                 form.notas.value = cliente.notas || '';
                 form.dataset.editId = clienteId;
@@ -92,6 +94,8 @@ const ClientesModule = {
         const cliente = {
             nombre: formData.get('nombre'),
             telefono: formData.get('telefono'),
+            email: formData.get('email'),
+            dni: formData.get('dni'),
             direccion: formData.get('direccion'),
             notas: formData.get('notas')
         };

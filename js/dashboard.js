@@ -300,6 +300,16 @@ const DashboardModule = {
 
         const data = await Promise.all(dataPromises);
 
+        // Calcular proyección para el próximo mes
+        const promedio = data.reduce((a, b) => a + b, 0) / data.length;
+        const ultimoMes = data[data.length - 1] || 0;
+        const proyeccion = ultimoMes > 0 ? (ultimoMes + promedio) / 2 : promedio;
+        
+        // Agregar mes siguiente
+        const proxMes = new Date();
+        proxMes.setMonth(proxMes.getMonth() + 1);
+        const labelProyeccion = proxMes.toLocaleDateString('es', { month: 'short', year: 'numeric' });
+
         if (this.charts.ganancias) {
             this.charts.ganancias.destroy();
         }
@@ -307,29 +317,79 @@ const DashboardModule = {
         this.charts.ganancias = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: meses.map(m => m.label),
+                labels: [...meses.map(m => m.label), labelProyeccion],
                 datasets: [{
-                    label: 'Ganancias ($)',
-                    data: data,
+                    label: 'Ganancias Realizadas',
+                    data: [...data, null],
                     borderColor: '#0f9d58',
                     backgroundColor: 'rgba(15, 157, 88, 0.1)',
+                    borderWidth: 3,
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#0f9d58',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    segment: {
+                        borderDash: ctx => ctx.p1DataIndex === data.length ? [5, 5] : undefined
+                    }
+                }, {
+                    label: 'Proyección',
+                    data: [...Array(data.length).fill(null), ultimoMes, proyeccion],
+                    borderColor: '#34a853',
+                    backgroundColor: 'rgba(52, 168, 83, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#34a853',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
-                        display: true
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '$' + context.parsed.y.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                                }
+                                return label;
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
                         ticks: {
                             callback: (value) => '$' + value.toLocaleString()
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -358,29 +418,69 @@ const DashboardModule = {
         }
 
         this.charts.prestado = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: meses.map(m => m.label),
                 datasets: [{
                     label: 'Capital Prestado ($)',
                     data: data,
-                    backgroundColor: '#1a73e8',
-                    borderRadius: 5
+                    borderColor: '#1a73e8',
+                    backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#1a73e8',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
-                        display: true
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '$' + context.parsed.y.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                                }
+                                return label;
+                            },
+                            afterLabel: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const promedio = total / context.dataset.data.length;
+                                return 'Promedio mensual: $' + promedio.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
                         ticks: {
                             callback: (value) => '$' + value.toLocaleString()
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -431,25 +531,68 @@ const DashboardModule = {
                 datasets: [{
                     label: 'Capital Acumulado ($)',
                     data: data,
-                    borderColor: '#f4b400',
-                    backgroundColor: 'rgba(244, 180, 0, 0.1)',
+                    borderColor: '#ea4335',
+                    backgroundColor: 'rgba(234, 67, 53, 0.1)',
+                    borderWidth: 3,
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#ea4335',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
-                        display: true
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '$' + context.parsed.y.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                                }
+                                return label;
+                            },
+                            afterLabel: function(context) {
+                                if (context.dataIndex > 0) {
+                                    const anterior = context.dataset.data[context.dataIndex - 1];
+                                    const actual = context.parsed.y;
+                                    const crecimiento = actual - anterior;
+                                    const porcentaje = ((crecimiento / anterior) * 100).toFixed(2);
+                                    return `Crecimiento: $${crecimiento.toLocaleString('es-ES', {minimumFractionDigits: 2})} (${porcentaje}%)`;
+                                }
+                                return '';
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
                         ticks: {
                             callback: (value) => '$' + value.toLocaleString()
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }
@@ -478,29 +621,68 @@ const DashboardModule = {
         }
 
         this.charts.cobros = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: meses.map(m => m.label),
                 datasets: [{
                     label: 'Cobros Recibidos ($)',
                     data: data,
-                    backgroundColor: '#4285f4',
-                    borderRadius: 5
+                    borderColor: '#fbbc04',
+                    backgroundColor: 'rgba(251, 188, 4, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#fbbc04',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
-                        display: true
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '$' + context.parsed.y.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                                }
+                                return label;
+                            },
+                            afterLabel: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                return 'Total cobrado: $' + total.toLocaleString('es-ES', {minimumFractionDigits: 2});
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
                         ticks: {
                             callback: (value) => '$' + value.toLocaleString()
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
                         }
                     }
                 }

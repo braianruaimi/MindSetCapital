@@ -476,14 +476,83 @@ const Storage = {
     // ============================================
 
     async exportData() {
+        const clientes = await this.getClientes();
+        const prestamos = await this.getPrestamos();
+        const pagos = await this.getPagos();
+        
+        // Calcular resumen general
+        const totalClientes = clientes.length;
+        const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
+        const dineroEntregado = prestamos.reduce((sum, p) => sum + (parseFloat(p.montoEntregado) || 0), 0);
+        const capitalACobrar = prestamosActivos.reduce((sum, p) => {
+            const cuotasRestantes = p.cantidadCuotas - (p.cuotasPagadas || 0);
+            return sum + (cuotasRestantes * parseFloat(p.valorCuota || 0));
+        }, 0);
+        const dineroEnCalle = prestamosActivos.reduce((sum, p) => {
+            const pagado = (p.cuotasPagadas || 0) * parseFloat(p.valorCuota || 0);
+            const entregado = parseFloat(p.montoEntregado) || 0;
+            const enCalle = entregado - pagado;
+            return sum + (enCalle > 0 ? enCalle : 0);
+        }, 0);
+        
+        // Crear estructura detallada por cliente
+        const clientesDetallados = await Promise.all(clientes.map(async (cliente) => {
+            const prestamosCliente = prestamos.filter(p => p.clienteId === cliente.id);
+            const prestamosActivosCliente = prestamosCliente.filter(p => p.estado === 'activo');
+            
+            const prestamosDetallados = prestamosCliente.map(prestamo => ({
+                id: prestamo.id,
+                estado: prestamo.estado,
+                cantidadEntregada: parseFloat(prestamo.montoEntregado) || 0,
+                cantidadCuotas: prestamo.cantidadCuotas || 0,
+                valorCuota: parseFloat(prestamo.valorCuota) || 0,
+                cuotasPagadas: prestamo.cuotasPagadas || 0,
+                cuotasRestantes: (prestamo.cantidadCuotas || 0) - (prestamo.cuotasPagadas || 0),
+                totalCobrar: (prestamo.cantidadCuotas || 0) * (parseFloat(prestamo.valorCuota) || 0),
+                totalPagado: (prestamo.cuotasPagadas || 0) * (parseFloat(prestamo.valorCuota) || 0),
+                saldoPendiente: ((prestamo.cantidadCuotas || 0) - (prestamo.cuotasPagadas || 0)) * (parseFloat(prestamo.valorCuota) || 0),
+                frecuencia: prestamo.frecuencia,
+                fechaInicio: prestamo.fechaInicio,
+                fechaPrimerPago: prestamo.fechaPrimerPago
+            }));
+            
+            return {
+                id: cliente.id,
+                nombre: cliente.nombre || '',
+                apellido: cliente.apellido || '',
+                nombreCompleto: `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim(),
+                telefono: cliente.telefono || '',
+                email: cliente.email || '',
+                dni: cliente.dni || '',
+                direccion: cliente.direccion || '',
+                fechaRegistro: cliente.fechaRegistro || '',
+                score: cliente.score || 100,
+                prestamos: prestamosDetallados,
+                resumen: {
+                    totalPrestamos: prestamosCliente.length,
+                    prestamosActivos: prestamosActivosCliente.length,
+                    totalEntregado: prestamosCliente.reduce((sum, p) => sum + (parseFloat(p.montoEntregado) || 0), 0),
+                    totalACobrar: prestamosActivosCliente.reduce((sum, p) => {
+                        const cuotasRestantes = p.cantidadCuotas - (p.cuotasPagadas || 0);
+                        return sum + (cuotasRestantes * parseFloat(p.valorCuota || 0));
+                    }, 0)
+                }
+            };
+        }));
+        
         const data = {
-            clientes: await this.getClientes(),
-            prestamos: await this.getPrestamos(),
-            pagos: await this.getPagos(),
-            config: await this.getConfig(),
-            profile: JSON.parse(localStorage.getItem('mindset_profile') || '{}'),
+            resumenGeneral: {
+                totalClientes,
+                prestamosActivos: prestamosActivos.length,
+                prestamosFinalizados: prestamos.filter(p => p.estado === 'finalizado').length,
+                dineroEntregado,
+                capitalACobrar,
+                dineroEnCalle,
+                totalPagos: pagos.length
+            },
+            clientes: clientesDetallados,
             exportDate: new Date().toISOString(),
-            version: '1.0'
+            version: '2.0'
         };
         
         const dataStr = JSON.stringify(data, null, 2);
@@ -498,7 +567,7 @@ const Storage = {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        return true;
+        return data;
     },
 
     async importData(file) {

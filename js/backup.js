@@ -205,170 +205,208 @@ const BackupSystem = {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            const clientes = Storage.getClientes() || [];
-            const prestamos = Storage.getPrestamos() || [];
-            const pagos = Storage.getPagos() || [];
-            const config = Storage.get(Storage.KEYS.CONFIG) || {};
+            const clientes = await Storage.getClientes() || [];
+            const prestamos = await Storage.getPrestamos() || [];
+            const pagos = await Storage.getPagos() || [];
             
             let y = 20;
             const lineHeight = 7;
             const pageHeight = 280;
+            const margin = 20;
             
             // Función para verificar si necesitamos nueva página
-            const checkNewPage = () => {
-                if (y > pageHeight) {
+            const checkNewPage = (extraSpace = 0) => {
+                if (y + extraSpace > pageHeight) {
                     doc.addPage();
                     y = 20;
+                    return true;
                 }
+                return false;
             };
             
             // PORTADA
             doc.setFontSize(24);
-            doc.setTextColor(0, 255, 255);
+            doc.setTextColor(0, 200, 200);
             doc.text('💰 MindSet Capital', 105, y, { align: 'center' });
             y += 15;
             
             doc.setFontSize(16);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Reporte Completo de Datos', 105, y, { align: 'center' });
+            doc.setTextColor(60, 60, 60);
+            doc.text('Reporte Completo de Gestión', 105, y, { align: 'center' });
             y += 10;
             
             doc.setFontSize(10);
-            doc.text(`Fecha: ${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}`, 105, y, { align: 'center' });
-            y += 20;
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generado: ${new Date().toLocaleDateString('es-ES', { 
+                year: 'numeric', month: 'long', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            })}`, 105, y, { align: 'center' });
+            y += 25;
             
-            // RESUMEN GENERAL
-            doc.setFontSize(14);
-            doc.setTextColor(255, 0, 255);
-            doc.text('📊 Resumen General', 20, y);
-            y += 10;
+            // CALCULAR MÉTRICAS
+            const prestamosActivos = prestamos.filter(p => p.estado === 'activo');
+            const dineroEntregado = prestamos.reduce((sum, p) => sum + (parseFloat(p.montoEntregado) || 0), 0);
+            const capitalACobrar = prestamosActivos.reduce((sum, p) => {
+                const cuotasRestantes = p.cantidadCuotas - (p.cuotasPagadas || 0);
+                return sum + (cuotasRestantes * parseFloat(p.valorCuota || 0));
+            }, 0);
+            const dineroEnCalle = prestamosActivos.reduce((sum, p) => {
+                const pagado = (p.cuotasPagadas || 0) * parseFloat(p.valorCuota || 0);
+                const entregado = parseFloat(p.montoEntregado) || 0;
+                const enCalle = entregado - pagado;
+                return sum + (enCalle > 0 ? enCalle : 0);
+            }, 0);
+            const totalGanancias = prestamos.reduce((sum, p) => sum + (parseFloat(p.ganancia) || 0), 0);
+            
+            // CLIENTES DETALLADOS
+            checkNewPage(40);
+            doc.setFontSize(16);
+            doc.setTextColor(0, 150, 200);
+            doc.text('👥 CLIENTES Y PRÉSTAMOS', margin, y);
+            y += 12;
+            
+            for (const cliente of clientes) {
+                const prestamosCliente = prestamos.filter(p => p.clienteId === cliente.id);
+                const prestamosActivosCliente = prestamosCliente.filter(p => p.estado === 'activo');
+                
+                checkNewPage(30);
+                
+                // Encabezado del cliente
+                doc.setFontSize(12);
+                doc.setTextColor(40, 40, 40);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${cliente.nombre || ''} ${cliente.apellido || ''}`, margin, y);
+                doc.setFont(undefined, 'normal');
+                y += lineHeight;
+                
+                // Datos del cliente
+                doc.setFontSize(9);
+                doc.setTextColor(80, 80, 80);
+                doc.text(`ID: ${cliente.id}`, margin + 5, y);
+                y += lineHeight;
+                doc.text(`Teléfono: ${cliente.telefono || 'N/A'}`, margin + 5, y);
+                y += lineHeight;
+                doc.text(`Email: ${cliente.email || 'N/A'}`, margin + 5, y);
+                y += lineHeight;
+                doc.text(`D.N.I: ${cliente.dni || 'N/A'}`, margin + 5, y);
+                y += lineHeight;
+                if (cliente.direccion) {
+                    doc.text(`Dirección: ${cliente.direccion}`, margin + 5, y);
+                    y += lineHeight;
+                }
+                y += 3;
+                
+                // Préstamos del cliente
+                if (prestamosCliente.length > 0) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 100, 150);
+                    doc.text(`Préstamos (${prestamosCliente.length}):`, margin + 5, y);
+                    y += lineHeight;
+                    
+                    for (const prestamo of prestamosCliente) {
+                        checkNewPage(20);
+                        
+                        const cuotasRestantes = prestamo.cantidadCuotas - (prestamo.cuotasPagadas || 0);
+                        const saldoPendiente = cuotasRestantes * parseFloat(prestamo.valorCuota || 0);
+                        
+                        doc.setFontSize(9);
+                        doc.setTextColor(60, 60, 60);
+                        doc.text(`• Cantidad Entregada: $${parseFloat(prestamo.montoEntregado || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, margin + 10, y);
+                        y += lineHeight;
+                        doc.text(`  Cuotas: ${prestamo.cuotasPagadas || 0}/${prestamo.cantidadCuotas} | Valor Cuota: $${parseFloat(prestamo.valorCuota || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, margin + 10, y);
+                        y += lineHeight;
+                        doc.text(`  Total a Cobrar: $${(prestamo.cantidadCuotas * parseFloat(prestamo.valorCuota || 0)).toLocaleString('es-ES', { minimumFractionDigits: 2 })} | Saldo Pendiente: $${saldoPendiente.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, margin + 10, y);
+                        y += lineHeight;
+                        doc.text(`  Estado: ${prestamo.estado.toUpperCase()} | Inicio: ${new Date(prestamo.fechaInicio || prestamo.fechaCreacion).toLocaleDateString('es-ES')}`, margin + 10, y);
+                        y += lineHeight + 2;
+                    }
+                } else {
+                    doc.setFontSize(9);
+                    doc.setTextColor(120, 120, 120);
+                    doc.text('Sin préstamos registrados', margin + 10, y);
+                    y += lineHeight;
+                }
+                
+                y += 8;
+                
+                // Línea separadora
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin, y, 190, y);
+                y += 10;
+            }
+            
+            // RESUMEN FINAL
+            checkNewPage(60);
+            y += 5;
+            doc.setFontSize(16);
+            doc.setTextColor(0, 150, 100);
+            doc.text('📊 RESUMEN GENERAL', margin, y);
+            y += 12;
             
             doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`• Total de Clientes: ${clientes.length}`, 25, y);
-            y += lineHeight;
-            doc.text(`• Préstamos Activos: ${prestamos.length}`, 25, y);
-            y += lineHeight;
-            doc.text(`• Pagos Registrados: ${pagos.length}`, 25, y);
-            y += lineHeight;
-            doc.text(`• Capital Inicial: $${config.capitalInicial || 0}`, 25, y);
-            y += 15;
+            doc.setTextColor(40, 40, 40);
             
-            checkNewPage();
+            // Cuadro de resumen
+            doc.setFillColor(240, 250, 255);
+            doc.rect(margin, y - 5, 170, 50, 'F');
             
-            // CLIENTES
-            if (clientes.length > 0) {
-                doc.setFontSize(14);
-                doc.setTextColor(255, 0, 255);
-                doc.text('👥 Listado de Clientes', 20, y);
-                y += 10;
-                
-                doc.setFontSize(9);
-                doc.setTextColor(0, 0, 0);
-                
-                clientes.forEach((cliente, index) => {
-                    checkNewPage();
-                    
-                    doc.text(`${index + 1}. ${cliente.nombre} ${cliente.apellido || ''}`, 25, y);
-                    y += lineHeight;
-                    doc.text(`   Tel: ${cliente.telefono || 'N/A'} | Email: ${cliente.email || 'N/A'}`, 30, y);
-                    y += lineHeight;
-                    if (cliente.direccion) {
-                        doc.text(`   Dir: ${cliente.direccion}`, 30, y);
-                        y += lineHeight;
-                    }
-                    doc.text(`   Score: ${cliente.score || 100} | Registrado: ${new Date(cliente.fechaRegistro).toLocaleDateString()}`, 30, y);
-                    y += lineHeight + 2;
-                });
-                
-                y += 10;
-            }
+            doc.setFont(undefined, 'bold');
+            doc.text('Total de Clientes:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(`${clientes.length}`, 120, y);
+            y += lineHeight + 2;
             
-            checkNewPage();
+            doc.setFont(undefined, 'bold');
+            doc.text('Préstamos Activos:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(`${prestamosActivos.length}`, 120, y);
+            y += lineHeight + 2;
             
-            // PRÉSTAMOS
-            if (prestamos.length > 0) {
-                doc.setFontSize(14);
-                doc.setTextColor(255, 0, 255);
-                doc.text('💰 Listado de Préstamos', 20, y);
-                y += 10;
-                
-                doc.setFontSize(9);
-                doc.setTextColor(0, 0, 0);
-                
-                prestamos.forEach((prestamo, index) => {
-                    checkNewPage();
-                    
-                    const cliente = clientes.find(c => c.id === prestamo.clienteId);
-                    const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellido || ''}` : 'Cliente desconocido';
-                    
-                    doc.text(`${index + 1}. ${nombreCliente}`, 25, y);
-                    y += lineHeight;
-                    doc.text(`   Monto: $${prestamo.monto} | Cuotas: ${prestamo.cuotasPagadas || 0}/${prestamo.cuotas}`, 30, y);
-                    y += lineHeight;
-                    doc.text(`   Total a Cobrar: $${prestamo.totalCobrar} | Ganancia: $${prestamo.ganancia}`, 30, y);
-                    y += lineHeight;
-                    doc.text(`   Estado: ${prestamo.estado} | Creado: ${new Date(prestamo.fechaCreacion).toLocaleDateString()}`, 30, y);
-                    y += lineHeight + 2;
-                });
-                
-                y += 10;
-            }
+            doc.setFont(undefined, 'bold');
+            doc.text('Dinero Entregado:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(200, 50, 50);
+            doc.text(`$${dineroEntregado.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, 120, y);
+            doc.setTextColor(40, 40, 40);
+            y += lineHeight + 2;
             
-            checkNewPage();
+            doc.setFont(undefined, 'bold');
+            doc.text('Capital a Cobrar:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 150, 0);
+            doc.text(`$${capitalACobrar.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, 120, y);
+            doc.setTextColor(40, 40, 40);
+            y += lineHeight + 2;
             
-            // PAGOS
-            if (pagos.length > 0) {
-                doc.setFontSize(14);
-                doc.setTextColor(255, 0, 255);
-                doc.text('📝 Historial de Pagos', 20, y);
-                y += 10;
-                
-                doc.setFontSize(9);
-                doc.setTextColor(0, 0, 0);
-                
-                // Ordenar pagos por fecha (más recientes primero)
-                const pagosOrdenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-                
-                pagosOrdenados.slice(0, 50).forEach((pago, index) => { // Limitar a últimos 50 pagos
-                    checkNewPage();
-                    
-                    const prestamo = prestamos.find(p => p.id === pago.prestamoId);
-                    const cliente = prestamo ? clientes.find(c => c.id === prestamo.clienteId) : null;
-                    const nombreCliente = cliente ? `${cliente.nombre} ${cliente.apellido || ''}` : 'N/A';
-                    
-                    doc.text(`${index + 1}. ${new Date(pago.fecha).toLocaleDateString()} - $${pago.monto}`, 25, y);
-                    y += lineHeight;
-                    doc.text(`   Cliente: ${nombreCliente}`, 30, y);
-                    y += lineHeight;
-                    if (pago.notas) {
-                        doc.text(`   Notas: ${pago.notas.substring(0, 60)}`, 30, y);
-                        y += lineHeight;
-                    }
-                    y += 2;
-                });
-                
-                if (pagos.length > 50) {
-                    y += 5;
-                    doc.text(`... y ${pagos.length - 50} pagos más`, 25, y);
-                }
-            }
+            doc.setFont(undefined, 'bold');
+            doc.text('Dinero en Calle:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(220, 120, 0);
+            doc.text(`$${dineroEnCalle.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, 120, y);
+            doc.setTextColor(40, 40, 40);
+            y += lineHeight + 2;
             
-            // PIE DE PÁGINA
+            doc.setFont(undefined, 'bold');
+            doc.text('Ganancias Totales:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 100, 200);
+            doc.text(`$${totalGanancias.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, 120, y);
+            
+            // PIE DE PÁGINA EN TODAS LAS PÁGINAS
             const pageCount = doc.internal.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
                 doc.setFontSize(8);
-                doc.setTextColor(128, 128, 128);
+                doc.setTextColor(150, 150, 150);
                 doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
-                doc.text('MindSet Capital © 2026', 20, 290);
+                doc.text('MindSet Capital © 2026', margin, 290);
             }
             
             // Guardar PDF
             const fileName = `MindSetCapital_Reporte_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
             
-            alert('✅ PDF descargado correctamente');
+            alert('✅ Reporte PDF descargado correctamente');
             
         } catch (error) {
             console.error('Error al generar PDF:', error);

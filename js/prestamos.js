@@ -75,6 +75,17 @@ const PrestamosModule = {
             });
         });
         
+        // Botón scroll down flotante
+        const btnScrollDown = document.getElementById('btnScrollDownPrestamos');
+        if (btnScrollDown) {
+            btnScrollDown.addEventListener('click', () => {
+                const listaPrestamos = document.getElementById('listaPrestamos');
+                if (listaPrestamos) {
+                    listaPrestamos.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            });
+        }
+        
         console.log('✅ Event listeners de préstamos configurados');
     },
 
@@ -118,9 +129,26 @@ const PrestamosModule = {
                 this.updateCuotasSelector();
                 document.getElementById('selectCuotasPagadas').value = prestamo.cuotasPagadas || 0;
                 
-                // Ocultar sección de cliente
-                document.getElementById('datosClienteNuevo').style.display = 'none';
-                document.getElementById('grupoClienteExistente').style.display = 'none';
+                // Cargar datos del cliente para edición
+                const cliente = await Storage.getCliente(prestamo.clienteId);
+                if (cliente) {
+                    // Mostrar sección de datos del cliente
+                    document.getElementById('datosClienteNuevo').style.display = 'block';
+                    document.getElementById('grupoClienteExistente').style.display = 'none';
+                    
+                    // Separar nombre completo en nombre y apellido si es necesario
+                    const nombreCompleto = cliente.nombre || '';
+                    const partesNombre = nombreCompleto.split(' ');
+                    const nombre = partesNombre[0] || '';
+                    const apellido = cliente.apellido || partesNombre.slice(1).join(' ') || '';
+                    
+                    document.getElementById('clienteNombre').value = nombre;
+                    document.getElementById('clienteApellido').value = apellido;
+                    document.getElementById('clienteTelefono').value = cliente.telefono || '';
+                    document.getElementById('clienteEmail').value = cliente.email || '';
+                    document.getElementById('clienteDni').value = cliente.dni || '';
+                    document.getElementById('clienteDireccion').value = cliente.direccion || '';
+                }
                 
                 this.calculateLoanDetails();
             }
@@ -164,9 +192,21 @@ const PrestamosModule = {
         let clienteId;
         
         if (isEdit) {
-            // Modo edición: mantener el cliente existente
+            // Modo edición: mantener el cliente existente pero actualizar sus datos
             const prestamoExistente = await Storage.getPrestamo(prestamoId);
             clienteId = prestamoExistente.clienteId;
+            
+            // Actualizar datos del cliente si se modificaron
+            const clienteData = {
+                nombre: formData.get('clienteNombre') || 'Cliente',
+                apellido: formData.get('clienteApellido') || '',
+                telefono: formData.get('clienteTelefono') || '',
+                email: formData.get('clienteEmail') || '',
+                dni: formData.get('clienteDni') || '',
+                direccion: formData.get('clienteDireccion') || ''
+            };
+            
+            await Storage.updateCliente(clienteId, clienteData);
         } else {
             // Modo creación: determinar cliente
             const tipoCliente = formData.get('tipoCliente');
@@ -185,6 +225,7 @@ const PrestamosModule = {
                     apellido: formData.get('clienteApellido') || '',
                     telefono: formData.get('clienteTelefono') || '',
                     email: formData.get('clienteEmail') || '',
+                    dni: formData.get('clienteDni') || '',
                     direccion: formData.get('clienteDireccion') || ''
                 };
                 
