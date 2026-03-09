@@ -87,6 +87,11 @@ const PerfilModule = (() => {
         if (btnCleanDuplicates) {
             btnCleanDuplicates.addEventListener('click', cleanDuplicates);
         }
+
+        const btnSystemDiagnostic = document.getElementById('btnSystemDiagnostic');
+        if (btnSystemDiagnostic) {
+            btnSystemDiagnostic.addEventListener('click', runSystemDiagnostic);
+        }
     }
 
     /**
@@ -443,6 +448,78 @@ const PerfilModule = (() => {
         }
     }
 
+    async function runSystemDiagnostic() {
+        try {
+            showNotification('🩺 Ejecutando diagnóstico...', 'info');
+
+            const [integrityReport, clientes, prestamos, pagos] = await Promise.all([
+                Storage.verifyDataIntegrity(),
+                Storage.getClientes(),
+                Storage.getPrestamos(),
+                Storage.getPagos()
+            ]);
+
+            const changeCount = Storage.getChangeCount ? Storage.getChangeCount() : 0;
+            const swSupported = 'serviceWorker' in navigator;
+            let swStatus = 'No soportado';
+            let cacheStatus = 'No disponible';
+            if (swSupported) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                swStatus = registration ? 'Activo' : 'No registrado';
+
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    let entryCount = 0;
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const keys = await cache.keys();
+                        entryCount += keys.length;
+                    }
+                    cacheStatus = `${cacheNames.length} cache(s), ${entryCount} recurso(s)`;
+                }
+            }
+
+            let localStorageBytes = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key) || '';
+                localStorageBytes += key.length + value.length;
+            }
+
+            let quotaText = 'No disponible';
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                if (estimate && estimate.quota) {
+                    const usedMb = ((estimate.usage || 0) / (1024 * 1024)).toFixed(2);
+                    const quotaMb = (estimate.quota / (1024 * 1024)).toFixed(2);
+                    quotaText = `${usedMb} MB / ${quotaMb} MB`;
+                }
+            }
+
+            const issuesText = integrityReport.issues.length > 0
+                ? integrityReport.issues.join('\n- ')
+                : 'Sin problemas detectados';
+
+            alert(
+                `🩺 DIAGNÓSTICO DEL SISTEMA\n\n` +
+                `Estado SW: ${swStatus}\n` +
+                `Clientes: ${clientes.length}\n` +
+                `Préstamos: ${prestamos.length}\n` +
+                `Pagos: ${pagos.length}\n` +
+                `Cambios registrados: ${changeCount}\n` +
+                `Uso localStorage: ${(localStorageBytes / 1024).toFixed(2)} KB\n` +
+                `Uso de almacenamiento: ${quotaText}\n\n` +
+                `Cache Storage: ${cacheStatus}\n\n` +
+                `Integridad:\n- ${issuesText}`
+            );
+
+            showNotification('✅ Diagnóstico completado', 'success');
+        } catch (error) {
+            console.error('Error en diagnóstico:', error);
+            showNotification('❌ Error al ejecutar diagnóstico', 'error');
+        }
+    }
+
     /**
      * Actualiza el estado del respaldo en la UI
      */
@@ -451,10 +528,15 @@ const PerfilModule = (() => {
         const prestamos = await Storage.getPrestamos();
         const pagos = await Storage.getPagos();
         const lastBackup = localStorage.getItem('mindset_last_backup');
+        const changeCount = Storage.getChangeCount ? Storage.getChangeCount() : 0;
 
         document.getElementById('statusClientes').textContent = clientes.length;
         document.getElementById('statusPrestamos').textContent = prestamos.filter(p => p.estado === 'activo').length;
         document.getElementById('statusPagos').textContent = pagos.length;
+        const statusCambios = document.getElementById('statusCambios');
+        if (statusCambios) {
+            statusCambios.textContent = changeCount;
+        }
 
         if (lastBackup) {
             const fecha = new Date(lastBackup);

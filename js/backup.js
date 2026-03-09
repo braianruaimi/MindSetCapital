@@ -8,12 +8,43 @@ const BackupSystem = {
     MAX_BACKUPS: 10, // Mantener últimas 10 copias
     lastBackupTime: 0,
     MIN_BACKUP_INTERVAL: 2000, // Mínimo 2 segundos entre backups
+    PERIODIC_BACKUP_INTERVAL: 10 * 60 * 1000, // 10 minutos
+    lastSnapshotChangeCount: 0,
+    periodicTimerId: null,
     
     // Inicializar sistema de backups
     init() {
+        this.lastSnapshotChangeCount = (typeof Storage !== 'undefined' && Storage.getChangeCount)
+            ? Storage.getChangeCount()
+            : 0;
+        this.startPeriodicBackups();
         this.updateBackupStatus();
         this.setupEventListeners();
         console.log('✅ Sistema de backups automáticos inicializado');
+    },
+
+    startPeriodicBackups() {
+        if (this.periodicTimerId) {
+            clearInterval(this.periodicTimerId);
+        }
+
+        this.periodicTimerId = setInterval(async () => {
+            try {
+                const currentChangeCount = (typeof Storage !== 'undefined' && Storage.getChangeCount)
+                    ? Storage.getChangeCount()
+                    : 0;
+
+                // Evitar backups vacíos: solo se respalda si hubo cambios reales.
+                if (currentChangeCount > this.lastSnapshotChangeCount) {
+                    const created = await this.createAutoBackup('periodic');
+                    if (created) {
+                        this.lastSnapshotChangeCount = currentChangeCount;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error en backup periódico:', error);
+            }
+        }, this.PERIODIC_BACKUP_INTERVAL);
     },
 
     // ============================================
@@ -21,7 +52,7 @@ const BackupSystem = {
     // ============================================
 
     // Crear backup automático (llamado desde Storage en cada operación)
-    async createAutoBackup() {
+    async createAutoBackup(source = 'event') {
         // Throttling: no crear backup si ya se creó uno hace menos de MIN_BACKUP_INTERVAL
         const now = Date.now();
         if (now - this.lastBackupTime < this.MIN_BACKUP_INTERVAL) {
@@ -33,6 +64,10 @@ const BackupSystem = {
             const backup = {
                 id: Date.now(),
                 fecha: new Date().toISOString(),
+                source,
+                changeCount: (typeof Storage !== 'undefined' && Storage.getChangeCount)
+                    ? Storage.getChangeCount()
+                    : 0,
                 datos: {
                     clientes: await Storage.getClientes() || [],
                     prestamos: await Storage.getPrestamos() || [],
@@ -55,8 +90,10 @@ const BackupSystem = {
             
             // Guardar en localStorage
             localStorage.setItem(this.BACKUP_KEY, JSON.stringify(backups));
+            localStorage.setItem('mindset_last_backup', backup.fecha);
             
             this.lastBackupTime = now;
+            this.lastSnapshotChangeCount = backup.changeCount;
             this.updateBackupStatus();
             
             console.log('✅ Backup automático creado:', new Date(backup.fecha).toLocaleString());
@@ -123,18 +160,18 @@ const BackupSystem = {
     // ============================================
 
     // Exportar backup manual (JSON)
-    exportManualBackup() {
+    async exportManualBackup() {
         try {
             const backup = {
                 app: 'MindSet Capital',
                 version: '2.0',
                 fecha: new Date().toISOString(),
                 datos: {
-                    clientes: Storage.getClientes() || [],
-                    prestamos: Storage.getPrestamos() || [],
-                    pagos: Storage.getPagos() || [],
-                    config: Storage.get(Storage.KEYS.CONFIG) || {},
-                    profile: Storage.get(Storage.KEYS.CAPITAL) || {}
+                    clientes: await Storage.getClientes() || [],
+                    prestamos: await Storage.getPrestamos() || [],
+                    pagos: await Storage.getPagos() || [],
+                    config: await Storage.get(Storage.KEYS.CONFIG) || {},
+                    profile: await Storage.get(Storage.KEYS.CAPITAL) || {}
                 }
             };
 
@@ -163,7 +200,7 @@ const BackupSystem = {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const backup = JSON.parse(e.target.result);
                 
@@ -177,12 +214,12 @@ const BackupSystem = {
                 }
 
                 // Restaurar datos
-                Storage.set(Storage.KEYS.CLIENTES, backup.datos.clientes);
-                Storage.set(Storage.KEYS.PRESTAMOS, backup.datos.prestamos);
-                Storage.set(Storage.KEYS.PAGOS, backup.datos.pagos);
-                Storage.set(Storage.KEYS.CONFIG, backup.datos.config);
+                await Storage.set(Storage.KEYS.CLIENTES, backup.datos.clientes);
+                await Storage.set(Storage.KEYS.PRESTAMOS, backup.datos.prestamos);
+                await Storage.set(Storage.KEYS.PAGOS, backup.datos.pagos);
+                await Storage.set(Storage.KEYS.CONFIG, backup.datos.config);
                 if (backup.datos.profile) {
-                    Storage.set(Storage.KEYS.CAPITAL, backup.datos.profile);
+                    await Storage.set(Storage.KEYS.CAPITAL, backup.datos.profile);
                 }
                 
                 alert('✅ Respaldo restaurado correctamente. Recargando aplicación...');
@@ -419,23 +456,28 @@ const BackupSystem = {
     // ============================================
 
     // Actualizar estado de backups en UI
-    updateBackupStatus() {
+    async updateBackupStatus() {
         const backups = this.getAutoBackups();
         const ultimoBackup = backups.length > 0 ? backups[0] : null;
         
         // Actualizar contadores
-        const clientes = Storage.getClientes() || [];
-        const prestamos = Storage.getPrestamos() || [];
-        const pagos = Storage.getPagos() || [];
+        const clientes = await Storage.getClientes() || [];
+        const prestamos = await Storage.getPrestamos() || [];
+        const pagos = await Storage.getPagos() || [];
+        const changeCount = (typeof Storage !== 'undefined' && Storage.getChangeCount)
+            ? Storage.getChangeCount()
+            : 0;
         
         const statusClientes = document.getElementById('statusClientes');
         const statusPrestamos = document.getElementById('statusPrestamos');
         const statusPagos = document.getElementById('statusPagos');
         const statusUltimoBackup = document.getElementById('statusUltimoBackup');
+        const statusCambios = document.getElementById('statusCambios');
         
         if (statusClientes) statusClientes.textContent = clientes.length;
         if (statusPrestamos) statusPrestamos.textContent = prestamos.length;
         if (statusPagos) statusPagos.textContent = pagos.length;
+        if (statusCambios) statusCambios.textContent = changeCount;
         
         if (statusUltimoBackup) {
             if (ultimoBackup) {
@@ -492,7 +534,9 @@ const BackupSystem = {
                             <div class="backup-details">
                                 ${backup.datos.clientes.length} clientes, 
                                 ${backup.datos.prestamos.length} préstamos, 
-                                ${backup.datos.pagos.length} pagos
+                                ${backup.datos.pagos.length} pagos,
+                                cambios: ${backup.changeCount || 0},
+                                origen: ${backup.source || 'event'}
                             </div>
                         </div>
                         <div class="backup-actions">

@@ -39,6 +39,12 @@ node_modules/
 dist/
 build/
 
+# Artefactos de pruebas E2E
+test-results/
+playwright-report/
+playwright-report.json
+e2e-output.txt
+
 # Backups
 *.bak
 *.backup

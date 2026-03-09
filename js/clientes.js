@@ -89,6 +89,40 @@ const ClientesModule = {
         });
     },
 
+    validateClienteData(cliente) {
+        const telefonoSanitizado = (cliente.telefono || '').replace(/\s+/g, '');
+        const dniSanitizado = (cliente.dni || '').replace(/\D/g, '');
+
+        if (!cliente.nombre || cliente.nombre.trim().length < 3) {
+            return { valid: false, message: 'El nombre debe tener al menos 3 caracteres' };
+        }
+
+        if (!/^\+?[0-9\-]{8,15}$/.test(telefonoSanitizado)) {
+            return { valid: false, message: 'El teléfono debe tener entre 8 y 15 dígitos' };
+        }
+
+        if (cliente.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cliente.email)) {
+            return { valid: false, message: 'El email no tiene un formato válido' };
+        }
+
+        if (cliente.dni && !/^\d{7,10}$/.test(dniSanitizado)) {
+            return { valid: false, message: 'El DNI debe tener entre 7 y 10 dígitos' };
+        }
+
+        return {
+            valid: true,
+            normalized: {
+                ...cliente,
+                nombre: cliente.nombre.trim(),
+                telefono: telefonoSanitizado,
+                email: (cliente.email || '').trim().toLowerCase(),
+                dni: dniSanitizado,
+                direccion: (cliente.direccion || '').trim(),
+                notas: (cliente.notas || '').trim()
+            }
+        };
+    },
+
     async saveCliente(form) {
         const formData = new FormData(form);
         const cliente = {
@@ -100,11 +134,19 @@ const ClientesModule = {
             notas: formData.get('notas')
         };
 
+        const validation = this.validateClienteData(cliente);
+        if (!validation.valid) {
+            this.showNotification(validation.message, 'error');
+            return;
+        }
+
+        const clienteNormalizado = validation.normalized;
+
         if (form.dataset.editId) {
-            await Storage.updateCliente(form.dataset.editId, cliente);
+            await Storage.updateCliente(form.dataset.editId, clienteNormalizado);
             this.showNotification('Cliente actualizado correctamente', 'success');
         } else {
-            await Storage.addCliente(cliente);
+            await Storage.addCliente(clienteNormalizado);
             this.showNotification('Cliente agregado correctamente', 'success');
         }
 

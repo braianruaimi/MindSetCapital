@@ -10,7 +10,8 @@ const Storage = {
         PRESTAMOS: 'mindset_prestamos',
         PAGOS: 'mindset_pagos',
         CONFIG: 'mindset_config',
-        CAPITAL: 'mindset_capital'
+        CAPITAL: 'mindset_capital',
+        CHANGE_COUNT: 'mindset_change_count'
     },
 
     // Indicador de encriptación
@@ -49,6 +50,9 @@ const Storage = {
                 capitalInicial: 0,
                 fechaInicio: new Date().toISOString()
             });
+        }
+        if (!localStorage.getItem(this.KEYS.CHANGE_COUNT)) {
+            localStorage.setItem(this.KEYS.CHANGE_COUNT, '0');
         }
     },
 
@@ -451,7 +455,17 @@ const Storage = {
     // AUTO-BACKUP
     // ============================================
 
+    registerDataChange() {
+        const current = parseInt(localStorage.getItem(this.KEYS.CHANGE_COUNT) || '0', 10);
+        localStorage.setItem(this.KEYS.CHANGE_COUNT, String(current + 1));
+    },
+
+    getChangeCount() {
+        return parseInt(localStorage.getItem(this.KEYS.CHANGE_COUNT) || '0', 10);
+    },
+
     triggerAutoBackup() {
+        this.registerDataChange();
         // Disparar backup automático si el sistema existe
         if (typeof BackupSystem !== 'undefined' && BackupSystem.createAutoBackup) {
             setTimeout(() => BackupSystem.createAutoBackup(), 100);

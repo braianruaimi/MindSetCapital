@@ -184,6 +184,56 @@ const PrestamosModule = {
         document.getElementById('tasaCalc').textContent = `${tasa.toFixed(2)}%`;
     },
 
+    validateClienteData(clienteData) {
+        const telefono = (clienteData.telefono || '').replace(/\s+/g, '');
+        const dni = (clienteData.dni || '').replace(/\D/g, '');
+        const email = (clienteData.email || '').trim().toLowerCase();
+
+        if (!clienteData.nombre || clienteData.nombre.trim().length < 2) {
+            return { valid: false, message: 'El nombre del cliente debe tener al menos 2 caracteres' };
+        }
+        if (telefono && !/^\+?[0-9\-]{8,15}$/.test(telefono)) {
+            return { valid: false, message: 'El teléfono del cliente debe tener entre 8 y 15 dígitos' };
+        }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return { valid: false, message: 'El email del cliente no tiene formato válido' };
+        }
+        if (dni && !/^\d{7,10}$/.test(dni)) {
+            return { valid: false, message: 'El DNI del cliente debe tener entre 7 y 10 dígitos' };
+        }
+
+        return {
+            valid: true,
+            normalized: {
+                ...clienteData,
+                nombre: clienteData.nombre.trim(),
+                apellido: (clienteData.apellido || '').trim(),
+                telefono,
+                email,
+                dni,
+                direccion: (clienteData.direccion || '').trim()
+            }
+        };
+    },
+
+    validatePrestamoData(prestamoData) {
+        const montoEntregado = parseFloat(prestamoData.montoEntregado);
+        const cantidadCuotas = parseInt(prestamoData.cantidadCuotas, 10);
+        const valorCuota = parseFloat(prestamoData.valorCuota);
+
+        if (!Number.isFinite(montoEntregado) || montoEntregado <= 0) {
+            return { valid: false, message: 'El monto entregado debe ser mayor a 0' };
+        }
+        if (!Number.isInteger(cantidadCuotas) || cantidadCuotas <= 0) {
+            return { valid: false, message: 'La cantidad de cuotas debe ser un número entero mayor a 0' };
+        }
+        if (!Number.isFinite(valorCuota) || valorCuota <= 0) {
+            return { valid: false, message: 'El valor de cuota debe ser mayor a 0' };
+        }
+
+        return { valid: true };
+    },
+
     async savePrestamo(form) {
         const formData = new FormData(form);
         const prestamoId = formData.get('prestamoId');
@@ -205,8 +255,14 @@ const PrestamosModule = {
                 dni: formData.get('clienteDni') || '',
                 direccion: formData.get('clienteDireccion') || ''
             };
-            
-            await Storage.updateCliente(clienteId, clienteData);
+
+            const clienteValidation = this.validateClienteData(clienteData);
+            if (!clienteValidation.valid) {
+                this.showNotification(clienteValidation.message, 'error');
+                return;
+            }
+
+            await Storage.updateCliente(clienteId, clienteValidation.normalized);
         } else {
             // Modo creación: determinar cliente
             const tipoCliente = formData.get('tipoCliente');
@@ -228,22 +284,40 @@ const PrestamosModule = {
                     dni: formData.get('clienteDni') || '',
                     direccion: formData.get('clienteDireccion') || ''
                 };
+
+                const clienteValidation = this.validateClienteData(clienteData);
+                if (!clienteValidation.valid) {
+                    this.showNotification(clienteValidation.message, 'error');
+                    return;
+                }
+
+                const clienteNormalizado = clienteValidation.normalized;
                 
                 // Buscar cliente por teléfono si se proporcionó
-                if (clienteData.telefono) {
-                    const clienteExistente = await this.buscarClientePorTelefono(clienteData.telefono);
+                if (clienteNormalizado.telefono) {
+                    const clienteExistente = await this.buscarClientePorTelefono(clienteNormalizado.telefono);
                     if (clienteExistente) {
                         clienteId = clienteExistente.id;
                         this.showNotification(`Cliente existente encontrado: ${clienteExistente.nombre}`, 'info');
                     } else {
-                        const nuevoCliente = await Storage.addCliente(clienteData);
+                        const nuevoCliente = await Storage.addCliente(clienteNormalizado);
                         clienteId = nuevoCliente.id;
                     }
                 } else {
-                    const nuevoCliente = await Storage.addCliente(clienteData);
+                    const nuevoCliente = await Storage.addCliente(clienteNormalizado);
                     clienteId = nuevoCliente.id;
                 }
             }
+        }
+
+        const prestamoValidation = this.validatePrestamoData({
+            montoEntregado: formData.get('montoEntregado'),
+            cantidadCuotas: formData.get('cantidadCuotas'),
+            valorCuota: formData.get('valorCuota')
+        });
+        if (!prestamoValidation.valid) {
+            this.showNotification(prestamoValidation.message, 'error');
+            return;
         }
         
         const prestamo = {
