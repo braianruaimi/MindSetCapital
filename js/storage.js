@@ -29,6 +29,13 @@ const Storage = {
         return `${timestamp}-${counter}-${random}`;
     },
 
+    stampEntity(data) {
+        return {
+            ...data,
+            updatedAt: new Date().toISOString()
+        };
+    },
+
     // Inicializar storage
     async init() {
         // Inicializar sistema de seguridad
@@ -165,20 +172,23 @@ const Storage = {
             }
         } while (clientes.some(c => c.id === newId) && attempts < 10);
         
-        cliente.id = newId;
-        cliente.fechaRegistro = new Date().toISOString();
-        cliente.score = 100; // Score inicial
-        clientes.push(cliente);
+        const stamped = this.stampEntity({
+            ...cliente,
+            id: newId,
+            fechaRegistro: new Date().toISOString(),
+            score: 100 // Score inicial
+        });
+        clientes.push(stamped);
         await this.set(this.KEYS.CLIENTES, clientes);
         this.triggerAutoBackup();
-        return cliente;
+        return stamped;
     },
 
     async updateCliente(id, data) {
         const clientes = await this.getClientes();
         const index = clientes.findIndex(c => c.id === id);
         if (index !== -1) {
-            clientes[index] = { ...clientes[index], ...data };
+            clientes[index] = this.stampEntity({ ...clientes[index], ...data });
             await this.set(this.KEYS.CLIENTES, clientes);
             this.triggerAutoBackup();
             return true;
@@ -226,21 +236,24 @@ const Storage = {
             }
         } while (prestamos.some(p => p.id === newId) && attempts < 10);
         
-        prestamo.id = newId;
-        prestamo.fechaCreacion = new Date().toISOString();
-        prestamo.estado = 'activo';
-        prestamo.cuotasPagadas = 0;
-        prestamos.push(prestamo);
+        const stamped = this.stampEntity({
+            ...prestamo,
+            id: newId,
+            fechaCreacion: new Date().toISOString(),
+            estado: 'activo',
+            cuotasPagadas: 0
+        });
+        prestamos.push(stamped);
         await this.set(this.KEYS.PRESTAMOS, prestamos);
         this.triggerAutoBackup();
-        return prestamo;
+        return stamped;
     },
 
     async updatePrestamo(id, data) {
         const prestamos = await this.getPrestamos();
         const index = prestamos.findIndex(p => p.id === id);
         if (index !== -1) {
-            prestamos[index] = { ...prestamos[index], ...data };
+            prestamos[index] = this.stampEntity({ ...prestamos[index], ...data });
             await this.set(this.KEYS.PRESTAMOS, prestamos);
             this.triggerAutoBackup();
             return true;
@@ -283,13 +296,16 @@ const Storage = {
             }
         } while (pagos.some(p => p.id === newId) && attempts < 10);
         
-        pago.id = newId;
-        pago.fechaRegistro = new Date().toISOString();
-        pagos.push(pago);
+        const stamped = this.stampEntity({
+            ...pago,
+            id: newId,
+            fechaRegistro: new Date().toISOString()
+        });
+        pagos.push(stamped);
         await this.set(this.KEYS.PAGOS, pagos);
 
         // Actualizar préstamo
-        const prestamo = await this.getPrestamo(pago.prestamoId);
+        const prestamo = await this.getPrestamo(stamped.prestamoId);
         if (prestamo) {
             prestamo.cuotasPagadas++;
             if (prestamo.cuotasPagadas >= prestamo.cantidadCuotas) {
@@ -300,7 +316,7 @@ const Storage = {
         }
 
         this.triggerAutoBackup();
-        return pago;
+        return stamped;
     },
 
     async getPago(id) {
@@ -312,7 +328,7 @@ const Storage = {
         const pagos = await this.getPagos();
         const index = pagos.findIndex(p => p.id === id);
         if (index !== -1) {
-            pagos[index] = { ...pagos[index], ...data };
+            pagos[index] = this.stampEntity({ ...pagos[index], ...data });
             await this.set(this.KEYS.PAGOS, pagos);
             this.triggerAutoBackup();
             return pagos[index];
@@ -470,6 +486,9 @@ const Storage = {
         if (typeof BackupSystem !== 'undefined' && BackupSystem.createAutoBackup) {
             setTimeout(() => BackupSystem.createAutoBackup(), 100);
         }
+        if (typeof CloudSync !== 'undefined' && CloudSync.scheduleSync) {
+            CloudSync.scheduleSync('storage-change');
+        }
     },
 
     // ============================================
@@ -482,7 +501,8 @@ const Storage = {
 
     async updateConfig(config) {
         const current = await this.getConfig();
-        await this.set(this.KEYS.CONFIG, { ...current, ...config });
+        await this.set(this.KEYS.CONFIG, this.stampEntity({ ...current, ...config }));
+        this.triggerAutoBackup();
     },
 
     // ============================================

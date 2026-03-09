@@ -192,6 +192,25 @@ Simplemente abre el archivo `index.html` con tu navegador favorito haciendo dobl
 
 ---
 
+## ☁️ Sincronización con Supabase (Opcional)
+
+La app sigue funcionando 100% local. Si quieres sincronizar entre dispositivos:
+
+1. Crea un proyecto en Supabase.
+2. En Supabase SQL Editor, ejecuta: `supabase/schema.sql`.
+3. En Supabase Auth, habilita Email/Password.
+4. En la app: `Perfil` -> `Supabase Sync`.
+5. Pega `Supabase URL` y `Anon Key`.
+6. Crea cuenta o inicia sesión.
+7. Usa `Sincronizar Ahora` para subir y bajar datos.
+
+Notas:
+- El modo local sigue activo (offline).
+- La nube se usa para respaldo y multi-dispositivo.
+- El botón `Traer desde Nube` reemplaza datos locales con los de la nube.
+
+---
+
 ## 🌐 Publicar en GitHub Pages
 
 ### Paso 1: Crear el Repositorio en GitHub

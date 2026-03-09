@@ -485,6 +485,49 @@
                         ⚠️ <strong>Tip:</strong> Guarda tus respaldos en Google Drive, Dropbox o envíatelos por email. Si desistalas la app o borras los datos del navegador, perderás toda la información.
                     </div>
                 </div>
+
+                <!-- Sincronización en Nube (Supabase) -->
+                <div class="card profile-card backup-card">
+                    <h3>☁️ Supabase Sync</h3>
+                    <p class="backup-description">
+                        Sincroniza datos entre dispositivos manteniendo modo local offline.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Supabase URL</label>
+                        <input type="text" id="supabaseUrl" placeholder="https://tu-proyecto.supabase.co">
+                    </div>
+                    <div class="form-group">
+                        <label>Supabase Anon Key</label>
+                        <input type="text" id="supabaseAnonKey" placeholder="eyJ...">
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="cloudEmail" placeholder="tu@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="cloudPassword" placeholder="********">
+                        </div>
+                    </div>
+
+                    <div class="backup-status">
+                        <div class="status-item">
+                            <span class="status-label">Estado de Nube:</span>
+                            <span class="status-value" id="cloudStatus">No configurado</span>
+                        </div>
+                    </div>
+
+                    <div class="backup-actions">
+                        <button class="btn-primary btn-full" id="btnSaveCloudConfig">💾 Guardar Config</button>
+                        <button class="btn-success btn-full" id="btnCloudSignUp">🆕 Crear Cuenta</button>
+                        <button class="btn-primary btn-full" id="btnCloudSignIn">🔐 Iniciar Sesión</button>
+                        <button class="btn-primary btn-full" id="btnCloudSyncNow">🔄 Sincronizar Ahora</button>
+                        <button class="btn-secondary btn-full" id="btnCloudPull">📥 Traer desde Nube</button>
+                        <button class="btn-danger btn-full" id="btnCloudSignOut">🚪 Cerrar Sesión</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -717,9 +760,11 @@
     </div><!-- Fin mainApp -->
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/security.js"></script>
     <script src="js/backup.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/cloud-sync.js"></script>
     <script src="js/clientes.js"></script>
     <script src="js/prestamos.js"></script>
     <script src="js/pagos.js"></script>

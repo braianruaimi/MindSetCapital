@@ -13,6 +13,7 @@ const PerfilModule = (() => {
         await loadProfile();
         setupEventListeners();
         await displayProfile();
+        await updateCloudStatus();
     }
 
     /**
@@ -91,6 +92,175 @@ const PerfilModule = (() => {
         const btnSystemDiagnostic = document.getElementById('btnSystemDiagnostic');
         if (btnSystemDiagnostic) {
             btnSystemDiagnostic.addEventListener('click', runSystemDiagnostic);
+        }
+
+        const btnSaveCloudConfig = document.getElementById('btnSaveCloudConfig');
+        if (btnSaveCloudConfig) {
+            btnSaveCloudConfig.addEventListener('click', saveCloudConfig);
+        }
+
+        const btnCloudSignUp = document.getElementById('btnCloudSignUp');
+        if (btnCloudSignUp) {
+            btnCloudSignUp.addEventListener('click', cloudSignUp);
+        }
+
+        const btnCloudSignIn = document.getElementById('btnCloudSignIn');
+        if (btnCloudSignIn) {
+            btnCloudSignIn.addEventListener('click', cloudSignIn);
+        }
+
+        const btnCloudSyncNow = document.getElementById('btnCloudSyncNow');
+        if (btnCloudSyncNow) {
+            btnCloudSyncNow.addEventListener('click', cloudSyncNow);
+        }
+
+        const btnCloudPull = document.getElementById('btnCloudPull');
+        if (btnCloudPull) {
+            btnCloudPull.addEventListener('click', cloudPull);
+        }
+
+        const btnCloudSignOut = document.getElementById('btnCloudSignOut');
+        if (btnCloudSignOut) {
+            btnCloudSignOut.addEventListener('click', cloudSignOut);
+        }
+
+        preloadCloudConfigInputs();
+    }
+
+    function preloadCloudConfigInputs() {
+        if (typeof CloudSync === 'undefined') return;
+        const cfg = CloudSync.getConfig ? CloudSync.getConfig() : {};
+        const urlInput = document.getElementById('supabaseUrl');
+        const keyInput = document.getElementById('supabaseAnonKey');
+        if (urlInput) urlInput.value = cfg.url || '';
+        if (keyInput) keyInput.value = cfg.anonKey || '';
+    }
+
+    async function updateCloudStatus() {
+        const statusElement = document.getElementById('cloudStatus');
+        if (!statusElement) return;
+
+        if (typeof CloudSync === 'undefined') {
+            statusElement.textContent = 'CloudSync no disponible';
+            return;
+        }
+
+        try {
+            const status = await CloudSync.getStatus();
+            if (!status.configured) {
+                statusElement.textContent = 'No configurado';
+                return;
+            }
+
+            if (!status.authenticated) {
+                statusElement.textContent = 'Configurado / sin sesión';
+                return;
+            }
+
+            const lastSyncText = status.lastSync
+                ? ` | Último sync: ${new Date(status.lastSync).toLocaleString()}`
+                : '';
+            statusElement.textContent = `Conectado: ${status.email}${lastSyncText}`;
+        } catch (error) {
+            statusElement.textContent = `Error: ${error.message}`;
+        }
+    }
+
+    function getCloudCredentials() {
+        const email = (document.getElementById('cloudEmail')?.value || '').trim();
+        const password = (document.getElementById('cloudPassword')?.value || '').trim();
+        return { email, password };
+    }
+
+    async function saveCloudConfig() {
+        try {
+            if (typeof CloudSync === 'undefined') {
+                showNotification('CloudSync no está disponible', 'error');
+                return;
+            }
+
+            const url = (document.getElementById('supabaseUrl')?.value || '').trim();
+            const anonKey = (document.getElementById('supabaseAnonKey')?.value || '').trim();
+
+            if (!url || !anonKey) {
+                showNotification('Completa URL y Anon Key', 'error');
+                return;
+            }
+
+            CloudSync.saveConfig(url, anonKey);
+            CloudSync.init();
+            await updateCloudStatus();
+            showNotification('Configuración de nube guardada', 'success');
+        } catch (error) {
+            console.error(error);
+            showNotification('Error al guardar configuración de nube', 'error');
+        }
+    }
+
+    async function cloudSignUp() {
+        try {
+            const { email, password } = getCloudCredentials();
+            if (!email || !password) {
+                showNotification('Completa email y contraseña', 'error');
+                return;
+            }
+            await CloudSync.signUp(email, password);
+            showNotification('Cuenta creada. Revisa tu email para confirmar.', 'success');
+            await updateCloudStatus();
+        } catch (error) {
+            showNotification(`Error al crear cuenta: ${error.message}`, 'error');
+        }
+    }
+
+    async function cloudSignIn() {
+        try {
+            const { email, password } = getCloudCredentials();
+            if (!email || !password) {
+                showNotification('Completa email y contraseña', 'error');
+                return;
+            }
+            await CloudSync.signIn(email, password);
+            await updateCloudStatus();
+            showNotification('Sesión en nube iniciada', 'success');
+        } catch (error) {
+            showNotification(`Error al iniciar sesión: ${error.message}`, 'error');
+        }
+    }
+
+    async function cloudSyncNow() {
+        try {
+            showNotification('Sincronizando con nube...', 'info');
+            await CloudSync.syncNow();
+            await updateCloudStatus();
+            showNotification('Sincronización completa', 'success');
+        } catch (error) {
+            showNotification(`Error de sincronización: ${error.message}`, 'error');
+        }
+    }
+
+    async function cloudPull() {
+        try {
+            if (!confirm('Esto reemplazará los datos locales con los de la nube. ¿Continuar?')) return;
+            await CloudSync.pullAll();
+            await updateBackupStatus();
+            await updateCloudStatus();
+            if (typeof ClientesModule !== 'undefined') await ClientesModule.renderClientes();
+            if (typeof PrestamosModule !== 'undefined') await PrestamosModule.renderPrestamos();
+            if (typeof PagosModule !== 'undefined') await PagosModule.renderPagos();
+            if (typeof DashboardModule !== 'undefined') await DashboardModule.init();
+            showNotification('Datos traídos desde nube', 'success');
+        } catch (error) {
+            showNotification(`Error al traer datos: ${error.message}`, 'error');
+        }
+    }
+
+    async function cloudSignOut() {
+        try {
+            await CloudSync.signOut();
+            await updateCloudStatus();
+            showNotification('Sesión en nube cerrada', 'success');
+        } catch (error) {
+            showNotification(`Error al cerrar sesión: ${error.message}`, 'error');
         }
     }
 

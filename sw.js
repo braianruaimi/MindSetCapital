@@ -3,7 +3,7 @@
 // MindSet Capital
 // ============================================
 
-const CACHE_NAME = 'mindset-capital-v6';
+const CACHE_NAME = 'mindset-capital-v7';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
     './js/security.js',
     './js/backup.js',
     './js/storage.js',
+    './js/cloud-sync.js',
     './js/clientes.js',
     './js/prestamos.js',
     './js/pagos.js',
@@ -24,7 +25,8 @@ const STATIC_ASSETS = [
     './assets/icon-192.png',
     './assets/icon-512.png',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
 // Instalación
