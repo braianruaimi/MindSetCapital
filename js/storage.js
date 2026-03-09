@@ -16,6 +16,18 @@ const Storage = {
     // Indicador de encriptación
     encryptionEnabled: true,
 
+    // Contador para IDs únicos
+    idCounter: 0,
+
+    // Generar ID único garantizado
+    generateUniqueId() {
+        // Combinar timestamp, contador incremental y random para garantizar unicidad
+        const timestamp = Date.now();
+        const counter = ++this.idCounter;
+        const random = Math.random().toString(36).substring(2, 9);
+        return `${timestamp}-${counter}-${random}`;
+    },
+
     // Inicializar storage
     async init() {
         // Inicializar sistema de seguridad
@@ -136,7 +148,20 @@ const Storage = {
 
     async addCliente(cliente) {
         const clientes = await this.getClientes();
-        cliente.id = Date.now().toString();
+        
+        // Generar ID único
+        let newId;
+        let attempts = 0;
+        do {
+            newId = this.generateUniqueId();
+            attempts++;
+            // Esperar 1ms si hay colisión (muy raro)
+            if (clientes.some(c => c.id === newId) && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+        } while (clientes.some(c => c.id === newId) && attempts < 10);
+        
+        cliente.id = newId;
         cliente.fechaRegistro = new Date().toISOString();
         cliente.score = 100; // Score inicial
         clientes.push(cliente);
@@ -185,7 +210,19 @@ const Storage = {
 
     async addPrestamo(prestamo) {
         const prestamos = await this.getPrestamos();
-        prestamo.id = Date.now().toString();
+        
+        // Generar ID único
+        let newId;
+        let attempts = 0;
+        do {
+            newId = this.generateUniqueId();
+            attempts++;
+            if (prestamos.some(p => p.id === newId) && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+        } while (prestamos.some(p => p.id === newId) && attempts < 10);
+        
+        prestamo.id = newId;
         prestamo.fechaCreacion = new Date().toISOString();
         prestamo.estado = 'activo';
         prestamo.cuotasPagadas = 0;
@@ -230,7 +267,19 @@ const Storage = {
 
     async addPago(pago) {
         const pagos = await this.getPagos();
-        pago.id = Date.now().toString();
+        
+        // Generar ID único
+        let newId;
+        let attempts = 0;
+        do {
+            newId = this.generateUniqueId();
+            attempts++;
+            if (pagos.some(p => p.id === newId) && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+        } while (pagos.some(p => p.id === newId) && attempts < 10);
+        
+        pago.id = newId;
         pago.fechaRegistro = new Date().toISOString();
         pagos.push(pago);
         await this.set(this.KEYS.PAGOS, pagos);
@@ -288,6 +337,114 @@ const Storage = {
 
         this.triggerAutoBackup();
         return true;
+    },
+
+    // ============================================
+    // LIMPIEZA DE DUPLICADOS Y MANTENIMIENTO
+    // ============================================
+
+    async removeDuplicateClientes() {
+        const clientes = await this.getClientes();
+        const prestamos = await this.getPrestamos();
+        
+        // Agrupar clientes por nombre+teléfono
+        const clientesMap = new Map();
+        const duplicados = [];
+        
+        for (const cliente of clientes) {
+            const key = `${cliente.nombre?.toLowerCase()}_${cliente.telefono}`;
+            
+            if (clientesMap.has(key)) {
+                // Ya existe un cliente con mismo nombre y teléfono
+                const existente = clientesMap.get(key);
+                
+                // Determinar cuál mantener (el más reciente)
+                const fechaExistente = new Date(existente.fechaRegistro || 0);
+                const fechaActual = new Date(cliente.fechaRegistro || 0);
+                
+                if (fechaActual > fechaExistente) {
+                    // El actual es más reciente, reemplazar
+                    duplicados.push({
+                        mantener: cliente.id,
+                        eliminar: existente.id
+                    });
+                    clientesMap.set(key, cliente);
+                } else {
+                    // El existente es más reciente, eliminar el actual
+                    duplicados.push({
+                        mantener: existente.id,
+                        eliminar: cliente.id
+                    });
+                }
+            } else {
+                clientesMap.set(key, cliente);
+            }
+        }
+        
+        // Si hay duplicados, limpiar
+        if (duplicados.length > 0) {
+            console.log(`⚠️ Encontrados ${duplicados.length} cliente(s) duplicado(s)`);
+            
+            for (const dup of duplicados) {
+                // Reasignar préstamos del cliente duplicado al cliente principal
+                const prestamosDelDuplicado = prestamos.filter(p => p.clienteId === dup.eliminar);
+                for (const prestamo of prestamosDelDuplicado) {
+                    await this.updatePrestamo(prestamo.id, { clienteId: dup.mantener });
+                }
+                
+                // Eliminar cliente duplicado
+                await this.deleteCliente(dup.eliminar);
+            }
+            
+            console.log(`✅ ${duplicados.length} duplicado(s) eliminado(s)`);
+            return duplicados.length;
+        }
+        
+        return 0;
+    },
+
+    async verifyDataIntegrity() {
+        const clientes = await this.getClientes();
+        const prestamos = await this.getPrestamos();
+        const pagos = await this.getPagos();
+        
+        const report = {
+            clientes: clientes.length,
+            prestamos: prestamos.length,
+            pagos: pagos.length,
+            issues: []
+        };
+        
+        // Verificar IDs únicos
+        const clienteIds = new Set();
+        const duplicateClienteIds = [];
+        for (const cliente of clientes) {
+            if (clienteIds.has(cliente.id)) {
+                duplicateClienteIds.push(cliente.id);
+            }
+            clienteIds.add(cliente.id);
+        }
+        if (duplicateClienteIds.length > 0) {
+            report.issues.push(`IDs de cliente duplicados: ${duplicateClienteIds.length}`);
+        }
+        
+        // Verificar préstamos huérfanos (sin cliente)
+        const prestamosHuerfanos = prestamos.filter(p => 
+            !clientes.some(c => c.id === p.clienteId)
+        );
+        if (prestamosHuerfanos.length > 0) {
+            report.issues.push(`Préstamos sin cliente: ${prestamosHuerfanos.length}`);
+        }
+        
+        // Verificar pagos huérfanos (sin préstamo)
+        const pagosHuerfanos = pagos.filter(p => 
+            !prestamos.some(pr => pr.id === p.prestamoId)
+        );
+        if (pagosHuerfanos.length > 0) {
+            report.issues.push(`Pagos sin préstamo: ${pagosHuerfanos.length}`);
+        }
+        
+        return report;
     },
 
     // ============================================

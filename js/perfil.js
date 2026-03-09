@@ -81,6 +81,12 @@ const PerfilModule = (() => {
             document.getElementById('fileImportBackup').click();
         });
         document.getElementById('fileImportBackup').addEventListener('change', importBackup);
+        
+        // Limpiar duplicados
+        const btnCleanDuplicates = document.getElementById('btnCleanDuplicates');
+        if (btnCleanDuplicates) {
+            btnCleanDuplicates.addEventListener('click', cleanDuplicates);
+        }
     }
 
     /**
@@ -383,6 +389,58 @@ const PerfilModule = (() => {
         }
         
         e.target.value = ''; // Limpiar input
+    }
+
+    /**
+     * Limpia clientes duplicados del sistema
+     */
+    async function cleanDuplicates() {
+        if (!confirm('🔍 ¿Deseas buscar y eliminar clientes duplicados?\n\nSe mantendrá el registro más reciente de cada cliente.')) {
+            return;
+        }
+
+        try {
+            showNotification('🔍 Buscando duplicados...', 'info');
+            
+            // Primera verificación: ver estado actual
+            const integrityReport = await Storage.verifyDataIntegrity();
+            console.log('Reporte de integridad:', integrityReport);
+            
+            // Limpiar duplicados
+            const duplicadosEliminados = await Storage.removeDuplicateClientes();
+            
+            if (duplicadosEliminados > 0) {
+                showNotification(`✅ Se eliminaron ${duplicadosEliminados} cliente(s) duplicado(s)`, 'success');
+                
+                // Actualizar todas las vistas
+                await updateBackupStatus();
+                
+                // Recargar módulos si están disponibles
+                if (typeof ClientesModule !== 'undefined') {
+                    await ClientesModule.renderClientes();
+                }
+                if (typeof DashboardModule !== 'undefined') {
+                    await DashboardModule.init();
+                }
+                
+                // Mostrar reporte final
+                const reporteFinal = await Storage.verifyDataIntegrity();
+                console.log('Reporte final:', reporteFinal);
+                
+                setTimeout(() => {
+                    alert(`✅ Limpieza completada\n\n` +
+                          `Clientes: ${reporteFinal.clientes}\n` +
+                          `Préstamos: ${reporteFinal.prestamos}\n` +
+                          `Pagos: ${reporteFinal.pagos}\n` +
+                          `Problemas restantes: ${reporteFinal.issues.length}`);
+                }, 1000);
+            } else {
+                showNotification('✅ No se encontraron clientes duplicados', 'success');
+            }
+        } catch (error) {
+            console.error('Error al limpiar duplicados:', error);
+            showNotification('❌ Error al limpiar duplicados', 'error');
+        }
     }
 
     /**
