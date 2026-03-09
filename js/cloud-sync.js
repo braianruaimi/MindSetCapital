@@ -114,6 +114,38 @@ const CloudSync = {
         }));
     },
 
+    getTimestamp(value) {
+        const time = new Date(value || 0).getTime();
+        return Number.isFinite(time) ? time : 0;
+    },
+
+    chooseNewest(localItem, cloudItem) {
+        const localTs = this.getTimestamp(localItem?.updatedAt);
+        const cloudTs = this.getTimestamp(cloudItem?.updatedAt);
+        return localTs >= cloudTs ? localItem : cloudItem;
+    },
+
+    mergeByNewest(localItems, cloudItems) {
+        const mergedMap = new Map();
+
+        for (const item of this.normalizeForCloud(localItems)) {
+            if (!item?.id) continue;
+            mergedMap.set(item.id, item);
+        }
+
+        for (const item of this.normalizeForCloud(cloudItems)) {
+            if (!item?.id) continue;
+            const existing = mergedMap.get(item.id);
+            if (!existing) {
+                mergedMap.set(item.id, item);
+            } else {
+                mergedMap.set(item.id, this.chooseNewest(existing, item));
+            }
+        }
+
+        return Array.from(mergedMap.values());
+    },
+
     async upsertCollection(table, userId, items) {
         const rows = this.normalizeForCloud(items).map(item => ({
             user_id: userId,
@@ -178,23 +210,56 @@ const CloudSync = {
         if (pagosRes.error) throw pagosRes.error;
         if (configRes.error) throw configRes.error;
 
-        const clientes = (clientesRes.data || []).map(row => ({ ...row.payload, id: row.id }));
-        const prestamos = (prestamosRes.data || []).map(row => ({ ...row.payload, id: row.id }));
-        const pagos = (pagosRes.data || []).map(row => ({ ...row.payload, id: row.id }));
+        const cloudClientes = (clientesRes.data || []).map(row => ({ ...row.payload, id: row.id }));
+        const cloudPrestamos = (prestamosRes.data || []).map(row => ({ ...row.payload, id: row.id }));
+        const cloudPagos = (pagosRes.data || []).map(row => ({ ...row.payload, id: row.id }));
 
-        await Storage.set(Storage.KEYS.CLIENTES, clientes);
-        await Storage.set(Storage.KEYS.PRESTAMOS, prestamos);
-        await Storage.set(Storage.KEYS.PAGOS, pagos);
+        const [localClientes, localPrestamos, localPagos, localConfig] = await Promise.all([
+            Storage.getClientes(),
+            Storage.getPrestamos(),
+            Storage.getPagos(),
+            Storage.getConfig()
+        ]);
 
-        if (configRes.data?.payload) {
-            await Storage.set(Storage.KEYS.CONFIG, configRes.data.payload);
+        const mergedClientes = this.mergeByNewest(localClientes, cloudClientes);
+        const mergedPrestamos = this.mergeByNewest(localPrestamos, cloudPrestamos);
+        const mergedPagos = this.mergeByNewest(localPagos, cloudPagos);
+
+        await Storage.set(Storage.KEYS.CLIENTES, mergedClientes);
+        await Storage.set(Storage.KEYS.PRESTAMOS, mergedPrestamos);
+        await Storage.set(Storage.KEYS.PAGOS, mergedPagos);
+
+        const cloudConfig = configRes.data?.payload || null;
+        if (cloudConfig) {
+            const mergedConfig = this.chooseNewest(
+                { ...localConfig, updatedAt: localConfig?.updatedAt || null },
+                { ...cloudConfig, updatedAt: cloudConfig?.updatedAt || null }
+            );
+            await Storage.set(Storage.KEYS.CONFIG, mergedConfig);
         }
+
+        // Reconciliación final: escribir merge de nuevo a la nube para converger ambos lados.
+        await this.upsertCollection('clientes', user.id, mergedClientes);
+        await this.upsertCollection('prestamos', user.id, mergedPrestamos);
+        await this.upsertCollection('pagos', user.id, mergedPagos);
+
+        const finalConfig = await Storage.getConfig();
+        const { error: configError } = await this.client
+            .from('config')
+            .upsert({
+                user_id: user.id,
+                payload: { ...finalConfig, updatedAt: finalConfig?.updatedAt || new Date().toISOString() },
+                updated_at: finalConfig?.updatedAt || new Date().toISOString()
+            }, { onConflict: 'user_id' });
+
+        if (configError) throw configError;
 
         localStorage.setItem(this.LAST_SYNC_KEY, new Date().toISOString());
         return true;
     },
 
     async syncNow() {
+        // Primero sube locales y luego hace merge bidireccional contra nube.
         await this.pushAll();
         await this.pullAll();
         return true;
